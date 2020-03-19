@@ -320,6 +320,10 @@ public class Transformer implements ClassFileTransformer {
     static { 
         replacementMap.put("javax/annotation/security", "jakarta/annotation/security");
         replacementMap.put("javax/annotation/sql", "jakarta/annotation/sql");
+        replacementMap.put("javax/annotation/G", "jakarta/annotation/G");
+        replacementMap.put("javax/annotation/M", "jakarta/annotation/M");
+        replacementMap.put("javax/annotation/P", "jakarta/annotation/P");
+        replacementMap.put("javax/annotation/R", "jakarta/annotation/R");
         replacementMap.put("javax/batch", "jakarta/batch");
         replacementMap.put("javax/decorator", "jakarta/decorator");
         replacementMap.put("javax/ejb", "jakarta/ejb");
@@ -349,9 +353,14 @@ public class Transformer implements ClassFileTransformer {
         replacementMap.put("javax/validation", "jakarta/validation");
         replacementMap.put("javax/websocket", "jakarta/websocket");
         replacementMap.put("javax/ws/rs", "jakarta/ws/rs");
-        
         replacementMap.put("javax.annotation.security", "jakarta.annotation.security");
         replacementMap.put("javax.annotation.sql", "jakarta.annotation.sql");
+        replacementMap.put("javax.annotation.security", "jakarta.annotation.security");
+        replacementMap.put("javax.annotation.sql", "jakarta.annotation.sql");
+        replacementMap.put("javax.annotation.G", "jakarta.annotation.G");
+        replacementMap.put("javax.annotation.M", "jakarta.annotation.M");
+        replacementMap.put("javax.annotation.P", "jakarta.annotation.P");
+        replacementMap.put("javax.annotation.R", "jakarta.annotation.R");
         replacementMap.put("javax.batch", "jakarta.batch");
         replacementMap.put("javax.decorator", "jakarta.decorator");
         replacementMap.put("javax.ejb", "jakarta.ejb");
@@ -399,84 +408,7 @@ public class Transformer implements ClassFileTransformer {
         }
         return stringBuilder.toString();
     }
-/*    
-    private static String replaceJavaXwithJakarta(String desc) {
-        // TODO: try using a regular expression
-        // note that we will ignore JDK javax.transaction.xa classes
-        String result = desc.
-                replace("javax/annotation/security", "jakarta/annotation/security").
-                replace("javax/annotation/sql", "jakarta/annotation/sql").
-                replace("javax/batch", "jakarta/batch").
-                replace("javax/decorator", "jakarta/decorator").
-                replace("javax/ejb", "jakarta/ejb").
-                replace("javax/el", "jakarta/el").
-                replace("javax/enterprise", "jakarta/enterprise").
-                replace("javax/faces", "jakarta/faces").
-                replace("javax/inject", "jakarta/inject").
-                replace("javax/interceptor", "jakarta/interceptor").
-                replace("javax/jms", "jakarta/jms").
-                replace("javax/json", "jakarta/json").
-                replace("javax/mail", "jakarta/mail").
-                replace("javax/management/j2ee", "jakarta/management/j2ee").
-                replace("javax/persistence", "jakarta/persistence").
-                replace("javax/resource", "jakarta/resource").
-                replace("javax/security/auth", "jakarta/security/auth").
-                replace("javax/security/enterprise", "jakarta/security/enterprise").
-                replace("javax/security/jacc", "jakarta/security/jacc").
-                replace("javax/servlet", "jakarta/servlet").
-                // only need to match with first letter of javax.transaction level classes
-                        replace("javax/transaction/H", "jakarta/transaction/H").
-                        replace("javax/transaction/I", "jakarta/transaction/I").
-                        replace("javax/transaction/N", "jakarta/transaction/N").
-                        replace("javax/transaction/R", "jakarta/transaction/R").
-                        replace("javax/transaction/S", "jakarta/transaction/S").
-                        replace("javax/transaction/T", "jakarta/transaction/T").
-                        replace("javax/transaction/U", "jakarta/transaction/U").
-                        replace("javax/validation", "jakarta/validation").
-                        replace("javax/websocket", "jakarta/websocket").
-                        replace("javax/ws/rs", "jakarta/ws/rs");
-
-        return result;
-    }
-
-    private static String replaceDottedJavaXwithJakarta(String desc) {
-        // note that we will ignore JDK javax.transaction.xa classes
-        String result = desc.
-                replace("javax.annotation.security", "jakarta.annotation.security").
-                replace("javax.annotation.sql", "jakarta.annotation.sql").
-                replace("javax.batch", "jakarta.batch").
-                replace("javax.decorator", "jakarta.decorator").
-                replace("javax.ejb", "jakarta.ejb").
-                replace("javax.el", "jakarta.el").
-                replace("javax.enterprise", "jakarta.enterprise").
-                replace("javax.faces", "jakarta.faces").
-                replace("javax.inject", "jakarta.inject").
-                replace("javax.interceptor", "jakarta.interceptor").
-                replace("javax.jms", "jakarta.jms").
-                replace("javax.json", "jakarta.json").
-                replace("javax.mail", "jakarta.mail").
-                replace("javax.management.j2ee", "jakarta.management.j2ee").
-                replace("javax.persistence", "jakarta.persistence").
-                replace("javax.resource", "jakarta.resource").
-                replace("javax.security.auth", "jakarta.security.auth").
-                replace("javax.security.enterprise", "jakarta.security.enterprise").
-                replace("javax.security.jacc", "jakarta.security.jacc").
-                replace("javax.servlet", "jakarta.servlet").
-                // only need to match with first letter of javax.transaction level classes
-                        replace("javax.transaction.H", "jakarta.transaction.H").
-                        replace("javax.transaction.I", "jakarta.transaction.I").
-                        replace("javax.transaction.N", "jakarta.transaction.N").
-                        replace("javax.transaction.R", "jakarta.transaction.R").
-                        replace("javax.transaction.S", "jakarta.transaction.S").
-                        replace("javax.transaction.T", "jakarta.transaction.T").
-                        replace("javax.transaction.U", "jakarta.transaction.U").
-                        replace("javax.validation", "jakarta.validation").
-                        replace("javax.websocket", "jakarta.websocket").
-                        replace("javax.ws.rs", "jakarta.ws.rs");
-
-        return result;
-    }
-  */
+    
     private static int getMajorJavaVersion() {
         int major = 8;
         String version = System.getProperty("java.specification.version", null);
