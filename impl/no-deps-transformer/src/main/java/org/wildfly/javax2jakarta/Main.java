@@ -136,7 +136,7 @@ public final class Main {
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
         JarEntry inJarEntry, outJarEntry;
-        byte[] buffer;
+        byte[] buffer, newBuffer = null;
 
         try {
             jar = new JarFile(inJarFile);
@@ -159,14 +159,17 @@ public final class Main {
                 readBytes(jar.getInputStream(inJarEntry), buffer, true);
                 // transform byte code of class files
                 if (inJarEntry.getName().endsWith(CLASS_FILE_EXT)) {
-                    buffer = t.transform(buffer);
+                    newBuffer = t.transform(buffer);
+                    if (newBuffer == null) {
+                        newBuffer = buffer;
+                    }
                 }
                 // writing modified jar file entry
                 outJarEntry = new JarEntry(inJarEntry.getName());
-                outJarEntry.setSize(buffer.length);
+                outJarEntry.setSize(newBuffer.length);
                 outJarEntry.setTime(calendar.getTimeInMillis());
                 jarOutputStream.putNextEntry(outJarEntry);
-                writeBytes(jarOutputStream, buffer, false);
+                writeBytes(jarOutputStream, newBuffer, false);
                 jarOutputStream.closeEntry();
             }
         } finally {

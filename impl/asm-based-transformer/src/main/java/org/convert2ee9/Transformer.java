@@ -20,12 +20,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.instrument.ClassFileTransformer;
-import java.lang.instrument.IllegalClassFormatException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.ProtectionDomain;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,15 +54,16 @@ import org.objectweb.asm.TypePath;
  * TODO:  introduce META-INF/jakartasignature.prop file with version stamp so we can ignore jars already transformed.
  *
  * @author Scott Marlow
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class Transformer implements ClassFileTransformer {
+public class Transformer implements org.wildfly.transformer.Transformer {
 
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private boolean alreadyTransformed;
 
-    public byte[] transform(final ClassReader classReader) {
-
+    public byte[] transform(final byte[] clazz) {
+        ClassReader classReader = new ClassReader(clazz);
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
         classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, classWriter) {
@@ -309,12 +307,6 @@ public class Transformer implements ClassFileTransformer {
         return result;
     }
 
-    @Override
-    public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) throws IllegalClassFormatException {
-        final ClassReader classReader = new ClassReader(classfileBuffer);
-        return transform(classReader);
-    }
-
     private static Map <String, String> replacementMap = new HashMap<>();
     static { 
         replacementMap.put("javax/annotation/security", "jakarta/annotation/security");
@@ -456,7 +448,7 @@ public class Transformer implements ClassFileTransformer {
         }
     }
 
-    private static void jarFile(final Transformer t, final Path source, final Path target) throws IOException, IllegalClassFormatException {
+    private static void jarFile(final Transformer t, final Path source, final Path target) throws IOException {
 
         if (source.toString().endsWith(".jar")) {
             JarFile jarFileSource = new JarFile(source.toFile());
@@ -530,7 +522,7 @@ public class Transformer implements ClassFileTransformer {
     }
     
     // transform class in an archive file
-    private static void jarFileEntry(final Transformer t, final JarEntry jarEntry, final JarFile jarFileSource, final JarOutputStream jarOutputStream) throws IOException, IllegalClassFormatException {
+    private static void jarFileEntry(final Transformer t, final JarEntry jarEntry, final JarFile jarFileSource, final JarOutputStream jarOutputStream) throws IOException {
         ZipEntry zipEntrySource = jarFileSource.getEntry(jarEntry.getName());
         InputStream inputStream = jarFileSource.getInputStream(zipEntrySource);
         if (jarEntry.getSize() > Integer.MAX_VALUE) {
@@ -549,7 +541,7 @@ public class Transformer implements ClassFileTransformer {
         }
         InputStream sourceBAIS = null;
         try {
-            final byte[] targetBytes = t.transform(null, null, null, null, byteBuffer);
+            final byte[] targetBytes = t.transform(byteBuffer);
             if (targetBytes != null) {
                 // will write modified class content
                 sourceBAIS = new ByteArrayInputStream(targetBytes);
@@ -578,8 +570,9 @@ public class Transformer implements ClassFileTransformer {
             InputStream sourceBAIS = null;
             InputStream inputStream = Files.newInputStream(source);
             try {
-                ClassReader classReader = new ClassReader(inputStream);
-                final byte[] targetBytes = t.transform(classReader);
+                byte[] buffer = new byte[(int) source.toFile().length()];
+                readBytes(inputStream, buffer);
+                final byte[] targetBytes = t.transform(buffer);
                 if (targetBytes != null) {
                     // write modified class content
                     sourceBAIS = new ByteArrayInputStream(targetBytes);
@@ -597,6 +590,14 @@ public class Transformer implements ClassFileTransformer {
             System.err.println("unexpected file extension type " + source.toString());
         }
     }
+
+    private static void readBytes(final InputStream is, final byte[] clazz) throws IOException {
+        int offset = 0;
+        while (offset < clazz.length) {
+            offset += is.read(clazz, offset, clazz.length - offset);
+        }
+    }
+
 
     private static class MyAnnotationVisitor extends AnnotationVisitor {
         public MyAnnotationVisitor(AnnotationVisitor av) {

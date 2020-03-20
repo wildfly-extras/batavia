@@ -52,6 +52,25 @@
     <url>https://github.com/wildfly-extras/batavia/issues</url>
   </issueManagement>
 
+  <properties>
+    <version.org.ow2.asm>7.3.1</version.org.ow2.asm>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>${version.org.ow2.asm}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.wildfly-extras</groupId>
+        <artifactId>transformer-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <modules>
     <module>api</module>
     <module>impl</module>

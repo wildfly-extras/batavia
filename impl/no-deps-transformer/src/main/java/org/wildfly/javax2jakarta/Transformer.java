@@ -31,7 +31,7 @@ import java.util.Map;
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
-public final class Transformer {
+public final class Transformer implements org.wildfly.transformer.Transformer {
 
     /**
      * Patch info mask.
@@ -119,7 +119,7 @@ public final class Transformer {
             }
         }
         try {
-            return patches == null ? clazz : applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches);
+            return patches == null ? null : applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches);
         } finally {
             if (DEBUG && patches != null) {
                 synchronized (System.out) {
