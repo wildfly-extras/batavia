@@ -22,38 +22,26 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.jboss</groupId>
-    <artifactId>jboss-parent</artifactId>
-    <version>36</version>
+    <groupId>org.wildfly-extras</groupId>
+    <artifactId>transformer-impl-parent</artifactId>
+    <version>1.0.0.Alpha1-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>Javax to Jakarta Transformation Project</name>
-  <groupId>org.wildfly-extras</groupId>
-  <artifactId>batavia-parent</artifactId>
-  <version>1.0.0.Alpha1-SNAPSHOT</version>
-  <packaging>pom</packaging>
+  <name>ASM Based Transformer</name>
+  <artifactId>asm-based-transformer</artifactId>
+  <packaging>jar</packaging>
 
-  <licenses>
-    <license>
-      <name>Apache License 2.0</name>
-      <url>http://repository.jboss.org/licenses/apache-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+  <properties>
+    <version.org.ow2.asm>7.3.1</version.org.ow2.asm>
+  </properties>
 
-  <scm>
-    <connection>scm:git:git@github.com:wildfly-extras/batavia.git</connection>
-    <developerConnection>scm:git:git@github.com:wildfly-extras/batavia.git</developerConnection>
-    <url>https://github.com/wildfly-extras/batavia</url>
-  </scm>
-
-  <issueManagement>
-    <system>github</system>
-    <url>https://github.com/wildfly-extras/batavia/issues</url>
-  </issueManagement>
-
-  <modules>
-    <module>impl</module>
-  </modules>
+  <dependencies>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>${version.org.ow2.asm}</version>
+    </dependency>
+  </dependencies>
 
 </project>
