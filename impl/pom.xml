@@ -28,20 +28,13 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>ASM Based Transformer</name>
-  <artifactId>asm-based-transformer</artifactId>
-  <packaging>jar</packaging>
+  <name>Transformer Implementations Parent</name>
+  <artifactId>transformer-impl-parent</artifactId>
+  <packaging>pom</packaging>
 
-  <properties>
-    <version.org.ow2.asm>7.3.1</version.org.ow2.asm>
-  </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm</artifactId>
-      <version>${version.org.ow2.asm}</version>
-    </dependency>
-  </dependencies>
+  <modules>
+    <module>asm-based-transformer</module>
+    <module>no-deps-transformer</module>
+  </modules>
 
 </project>
