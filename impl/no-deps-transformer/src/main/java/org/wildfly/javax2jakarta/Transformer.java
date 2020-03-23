@@ -1,13 +1,11 @@
 /*
- * JBoss, Home of Professional Open Source.
- * Copyright 2020 Red Hat, Inc., and individual contributors
- * as indicated by the @author tags.
+ * Copyright 2020 Red Hat, Inc, and individual contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,7 +31,7 @@ import java.util.Map;
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
-public final class Transformer {
+public final class Transformer implements org.wildfly.transformer.Transformer {
 
     /**
      * Patch info mask.
@@ -121,7 +119,7 @@ public final class Transformer {
             }
         }
         try {
-            return patches == null ? clazz : applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches);
+            return patches == null ? null : applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches);
         } finally {
             if (DEBUG && patches != null) {
                 synchronized (System.out) {

@@ -1,13 +1,11 @@
 /*
- * JBoss, Home of Professional Open Source.
- * Copyright 2020 Red Hat, Inc., and individual contributors
- * as indicated by the @author tags.
+ * Copyright 2020 Red Hat, Inc, and individual contributors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -138,7 +136,7 @@ public final class Main {
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
         JarEntry inJarEntry, outJarEntry;
-        byte[] buffer;
+        byte[] buffer, newBuffer = null;
 
         try {
             jar = new JarFile(inJarFile);
@@ -161,14 +159,17 @@ public final class Main {
                 readBytes(jar.getInputStream(inJarEntry), buffer, true);
                 // transform byte code of class files
                 if (inJarEntry.getName().endsWith(CLASS_FILE_EXT)) {
-                    buffer = t.transform(buffer);
+                    newBuffer = t.transform(buffer);
+                    if (newBuffer == null) {
+                        newBuffer = buffer;
+                    }
                 }
                 // writing modified jar file entry
                 outJarEntry = new JarEntry(inJarEntry.getName());
-                outJarEntry.setSize(buffer.length);
+                outJarEntry.setSize(newBuffer.length);
                 outJarEntry.setTime(calendar.getTimeInMillis());
                 jarOutputStream.putNextEntry(outJarEntry);
-                writeBytes(jarOutputStream, buffer, false);
+                writeBytes(jarOutputStream, newBuffer, false);
                 jarOutputStream.closeEntry();
             }
         } finally {

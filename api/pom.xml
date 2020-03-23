@@ -23,25 +23,13 @@
 
   <parent>
     <groupId>org.wildfly-extras</groupId>
-    <artifactId>transformer-impl-parent</artifactId>
+    <artifactId>batavia-parent</artifactId>
     <version>1.0.0.Alpha1-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>ASM Based Transformer</name>
-  <artifactId>asm-based-transformer</artifactId>
+  <name>Transformer API</name>
+  <artifactId>transformer-api</artifactId>
   <packaging>jar</packaging>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.wildfly-extras</groupId>
-      <artifactId>transformer-api</artifactId>
-    </dependency>
-  </dependencies>
-
 
 </project>

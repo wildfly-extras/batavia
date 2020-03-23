@@ -32,6 +32,13 @@
   <artifactId>no-dependencies-transformer</artifactId>
   <packaging>jar</packaging>
 
+  <dependencies>
+    <dependency>
+      <groupId>org.wildfly-extras</groupId>
+      <artifactId>transformer-api</artifactId>
+    </dependency>
+  </dependencies>
+
   <build>
     <plugins>
       <plugin>
