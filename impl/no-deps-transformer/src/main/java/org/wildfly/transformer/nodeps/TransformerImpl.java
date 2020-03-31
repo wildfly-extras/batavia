@@ -25,13 +25,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.wildfly.transformer.Transformer;
+
 /**
  * Class file transformer.
  * Instances of this class are thread safe.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
-public final class Transformer implements org.wildfly.transformer.Transformer {
+public final class TransformerImpl implements Transformer {
 
     /**
      * Patch info mask.
@@ -41,7 +43,7 @@ public final class Transformer implements org.wildfly.transformer.Transformer {
     /**
      * Debugging support.
      */
-    private static final boolean DEBUG = Boolean.getBoolean(Transformer.class.getName() + ".debug");
+    private static final boolean DEBUG = Boolean.getBoolean(TransformerImpl.class.getName() + ".debug");
 
     /**
      * Represents strings we are searching for in <code>CONSTANT_Utf8_info</code> structures (encoded in modified UTF-8).
@@ -67,7 +69,7 @@ public final class Transformer implements org.wildfly.transformer.Transformer {
      * @param mappingTo modified UTF-8 encoded patch strings
      * @param minimum length of the smallest search string
      */
-    private Transformer(final byte[][] mappingFrom, final byte[][] mappingTo, final int minimum) {
+    private TransformerImpl(final byte[][] mappingFrom, final byte[][] mappingTo, final int minimum) {
         this.mappingFrom = mappingFrom;
         this.mappingTo = mappingTo;
         this.minimum = minimum;
@@ -265,7 +267,7 @@ public final class Transformer implements org.wildfly.transformer.Transformer {
      *
      * @return class file transformer builder
      */
-    public static Transformer.Builder newInstance() {
+    public static TransformerImpl.Builder newInstance() {
         return new Builder();
     }
 
@@ -343,7 +345,7 @@ public final class Transformer implements org.wildfly.transformer.Transformer {
                 }
                 i++;
             }
-            return new Transformer(mappingFrom, mappingTo, minimum);
+            return new TransformerImpl(mappingFrom, mappingTo, minimum);
         }
     }
 

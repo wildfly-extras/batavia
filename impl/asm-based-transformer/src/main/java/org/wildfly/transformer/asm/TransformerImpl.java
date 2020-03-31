@@ -45,6 +45,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
+import org.wildfly.transformer.Transformer;
+
 /**
  * Transformer
  * <p>
@@ -56,7 +58,7 @@ import org.objectweb.asm.TypePath;
  * @author Scott Marlow
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class Transformer implements org.wildfly.transformer.Transformer {
+public class TransformerImpl implements Transformer {
 
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
@@ -431,12 +433,12 @@ public class Transformer implements org.wildfly.transformer.Transformer {
     public static void main(final String... args) throws Exception {
         if (args.length != 2) {
             System.out.println("Usage: java -cp convert2ee9-1.0.0.Alpha1-SNAPSHOT.jar:asm-7.1.jar org.convert2ee9.Transformer" +
-                    Transformer.class + " sourceClassFile targetClassFile");
+                    TransformerImpl.class + " sourceClassFile targetClassFile");
             return;
         }
         // configure transformer
         String to = null;
-        Transformer t = new Transformer();
+        Transformer t = new TransformerImpl();
         // get original class content
         final ByteArrayOutputStream targetBAOS = new ByteArrayOutputStream();
         final Path source = Paths.get(args[0]);

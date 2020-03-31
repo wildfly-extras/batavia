@@ -29,6 +29,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 
+import org.wildfly.transformer.Transformer;
+
 /**
  * Command line tool for transforming class files or jar files.
  *
@@ -181,11 +183,11 @@ public final class Main {
     private static Transformer getTransformer() throws IOException {
         InputStream is = null;
         try {
-            is = Transformer.class.getResourceAsStream(SEP + DEFAULT_CONFIG);
+            is = TransformerImpl.class.getResourceAsStream(SEP + DEFAULT_CONFIG);
             final Properties defaultMapping = new Properties();
             defaultMapping.load(is);
             String to;
-            final Transformer.Builder builder = Transformer.newInstance();
+            final TransformerImpl.Builder builder = TransformerImpl.newInstance();
             for (String from : defaultMapping.stringPropertyNames()) {
                 to = defaultMapping.getProperty(from);
                 if (to.indexOf(DOT) != -1 || from.indexOf(DOT) != -1) {
