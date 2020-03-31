@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.javax2jakarta;
+package org.wildfly.transformer.nodeps;
 
 import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
-import static org.wildfly.javax2jakarta.ClassFileUtils.*;
+import static org.wildfly.transformer.nodeps.ClassFileUtils.*;
 
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
