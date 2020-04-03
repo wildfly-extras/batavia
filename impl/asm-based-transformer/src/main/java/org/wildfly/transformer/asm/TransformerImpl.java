@@ -328,7 +328,6 @@ public class TransformerImpl implements Transformer {
         replacementMap.put("javax/jms", "jakarta/jms");
         replacementMap.put("javax/json", "jakarta/json");
         replacementMap.put("javax/mail", "jakarta/mail");
-        replacementMap.put("javax/management/j2ee", "jakarta/management/j2ee");
         replacementMap.put("javax/persistence", "jakarta/persistence");
         replacementMap.put("javax/resource", "jakarta/resource");
         replacementMap.put("javax/security/auth", "jakarta/security/auth");
@@ -365,7 +364,6 @@ public class TransformerImpl implements Transformer {
         replacementMap.put("javax.jms", "jakarta.jms");
         replacementMap.put("javax.json", "jakarta.json");
         replacementMap.put("javax.mail", "jakarta.mail");
-        replacementMap.put("javax.management.j2ee", "jakarta.management.j2ee");
         replacementMap.put("javax.persistence", "jakarta.persistence");
         replacementMap.put("javax.resource", "jakarta.resource");
         replacementMap.put("javax.security.auth", "jakarta.security.auth");
