@@ -15,23 +15,11 @@
  */
 package org.wildfly.transformer.asm;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Enumeration;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarOutputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
@@ -46,7 +34,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
 import org.wildfly.transformer.Transformer;
-import org.wildfly.transformer.Transformer.Resource;
 
 /**
  * Transformer
@@ -68,8 +55,8 @@ public class TransformerImpl implements Transformer {
     /**
      * {@inheritDoc}
      */
-    public Resource transform(final Resource r) {
-        ClassReader classReader = new ClassReader(r.getData());
+    public byte[] transform(final byte[] clazz) {
+        ClassReader classReader = new ClassReader(clazz);
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
         classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, classWriter) {
@@ -309,8 +296,7 @@ public class TransformerImpl implements Transformer {
             return null;
         }
 
-        byte[] result = classWriter.toByteArray();
-        return new Resource(r.getName(), result);
+        return classWriter.toByteArray();
     }
 
     private static Map <String, String> replacementMap = new HashMap<>();
@@ -432,178 +418,29 @@ public class TransformerImpl implements Transformer {
         alreadyTransformed = classTransformed = false;
     }
 
-    public static void main(final String... args) throws Exception {
-        if (args.length != 2) {
-            System.out.println("Usage: java -cp convert2ee9-1.0.0.Alpha1-SNAPSHOT.jar:asm-7.1.jar org.convert2ee9.Transformer" +
-                    TransformerImpl.class + " sourceClassFile targetClassFile");
-            return;
+    @Override
+    public Resource transform(final Resource r) {
+        final String resourceName = r.getName();
+        if (resourceName.endsWith(".class")) {
+            final byte[] newClazz = transform(r.getData());
+            return newClazz != null ? new Resource(resourceName, newClazz) : null;
+        } else if (resourceName.endsWith(".xml")) {
+            return new Resource(resourceName, xmlFile(r.getData()));
+        } else if (resourceName.startsWith("META-INF/services/javax.")) {
+            // rename service files like META-INF/services/javax.persistence.spi.PersistenceProvider
+            // to META-INF/services/jakarta.persistence.spi.PersistenceProvider
+            return new Resource(resourceName.replace("javax.", "jakarta."), r.getData());
         }
-        // configure transformer
-        String to = null;
-        Transformer t = new TransformerImpl();
-        // get original class content
-        final ByteArrayOutputStream targetBAOS = new ByteArrayOutputStream();
-        final Path source = Paths.get(args[0]);
-        final Path target = Paths.get(args[1]);
-        if (source.toString().endsWith(".jar")) {
-            jarFile(t, source, target);
-        } else {
-            classFile(t, source, target);
-        }
+        return null; // returning null means nothing was transformed (indicates copy original content)
     }
 
-    private static void jarFile(final Transformer t, final Path source, final Path target) throws IOException {
-
-        if (source.toString().endsWith(".jar")) {
-            JarFile jarFileSource = new JarFile(source.toFile());
-            FileOutputStream fileOutputStream = new FileOutputStream(target.toFile());
-            JarOutputStream jarOutputStream = new JarOutputStream(fileOutputStream);
-            try {
-
-                for (Enumeration<JarEntry> entries = jarFileSource.entries(); entries.hasMoreElements(); ) {
-                    JarEntry jarEntry = entries.nextElement();
-                    String name = jarEntry.getName();
-                    if (jarEntry.getName().endsWith(".xml")) {
-                        ZipEntry zipEntrySource = jarFileSource.getEntry(name);
-                        String targetName = jarEntry.getName();
-                        xmlFile(targetName, jarFileSource.getInputStream(zipEntrySource), jarOutputStream);
-                    } else if (jarEntry.getName().endsWith(".class")) {
-                        jarFileEntry(t, jarEntry, jarFileSource, jarOutputStream);
-                    } else if (jarEntry.getName().endsWith("/")) {
-                    } else if (jarEntry.getName().startsWith("META-INF/services/javax.")) {
-                        // rename service files like META-INF/services/javax.persistence.spi.PersistenceProvider
-                        // to META-INF/services/jakarta.persistence.spi.PersistenceProvider
-                        ZipEntry zipEntrySource = jarFileSource.getEntry(name);
-                        String targetName = jarEntry.getName().replace("javax.", "jakarta.");
-                        copyFile(targetName, jarFileSource.getInputStream(zipEntrySource), jarOutputStream);
-                    } else {
-                        ZipEntry zipEntrySource = jarFileSource.getEntry(name);
-                        String targetName = jarEntry.getName();
-                        copyFile(targetName, jarFileSource.getInputStream(zipEntrySource), jarOutputStream);
-                    }
-                }
-            } finally {
-                jarOutputStream.close();
-                jarFileSource.close();
-                fileOutputStream.close();
-            }
-
-        } else {
-            System.err.println("unexpected file extension type " + source.toString());
-        }
-    }
-
-    private static void xmlFile(String targetName, InputStream inputStream, JarOutputStream jarOutputStream) throws IOException {
+    private static byte[] xmlFile(final byte[] data) {
         try {
-            ByteArrayOutputStream xmlOutputStream = new ByteArrayOutputStream();
-            byte[] xmlBuffer = new byte[16384];
-            int length;
-            while ((length = inputStream.read(xmlBuffer)) != -1) {
-                xmlOutputStream.write(xmlBuffer, 0, length);
-            }
-            String xmlValue = xmlOutputStream.toString("UTF-8").replace("javax.", "jakarta.");
-            xmlBuffer = xmlValue.getBytes("UTF-8");
-            jarOutputStream.putNextEntry(new JarEntry(targetName));
-            jarOutputStream.write(xmlBuffer);
-        } finally {
-            inputStream.close();
+            return new String(data, "UTF-8").replace("javax.", "jakarta.").getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return null; // should never happen
         }
     }
-
-    private static void copyFile(String targetName, InputStream inputStream, JarOutputStream jarOutputStream) throws IOException {
-        try {
-            jarOutputStream.putNextEntry(new JarEntry(targetName));
-            final byte[] buffer = new byte[16384];
-            int count;
-            while ((count = inputStream.read(buffer)) != -1) {
-                jarOutputStream.write(buffer, 0, count);
-            }
-        } finally {
-            jarOutputStream.closeEntry();
-            inputStream.close();
-            
-        }
-    }
-    
-    // transform class in an archive file
-    private static void jarFileEntry(final Transformer t, final JarEntry jarEntry, final JarFile jarFileSource, final JarOutputStream jarOutputStream) throws IOException {
-        ZipEntry zipEntrySource = jarFileSource.getEntry(jarEntry.getName());
-        InputStream inputStream = jarFileSource.getInputStream(zipEntrySource);
-        if (jarEntry.getSize() > Integer.MAX_VALUE) {
-            System.out.println("error " + jarEntry.getName() +" class is larger than Integer.MAX_VALUE, getSize() =  " + jarEntry.getSize() );
-            System.exit(1);
-        }
-        byte [] byteBuffer = new byte [(int)jarEntry.getSize()];
-        int offset = 0;
-        int numRead = 0;
-        while (offset < byteBuffer.length && (numRead = inputStream.read(byteBuffer, offset, byteBuffer.length - offset)) >= 0) {
-            offset += numRead;
-        }
-        if (offset != byteBuffer.length) {
-            System.out.println("error reading bytes from " + jarEntry.getName() +", expected to read " + byteBuffer.length + " but only read " + offset);
-            System.exit(1);
-        }
-        InputStream sourceBAIS = null;
-        try {
-            final Resource r = t.transform(new Resource(jarEntry.getName(), byteBuffer));
-            final byte[] targetBytes = r != null ? r.getData() : null;
-            if (targetBytes != null) {
-                // will write modified class content
-                sourceBAIS = new ByteArrayInputStream(targetBytes);
-            } else {
-                // copy original class
-                sourceBAIS = new ByteArrayInputStream(byteBuffer); 
-            }
-
-            jarOutputStream.putNextEntry(new JarEntry(jarEntry.getName()));
-            final byte[] buffer = new byte[16384];
-            int sourceCounter;
-            while ((sourceCounter = sourceBAIS.read(buffer)) != -1) {
-                jarOutputStream.write(buffer, 0, sourceCounter);
-            }
-        } finally {
-            jarOutputStream.closeEntry();
-            inputStream.close();
-            if (sourceBAIS != inputStream && sourceBAIS != null) {
-                sourceBAIS.close();
-            }
-        }
-    }
-
-    private static void classFile(final Transformer t, final Path source, final Path target) throws IOException {
-        if (source.toString().endsWith(".class")) {
-            InputStream sourceBAIS = null;
-            InputStream inputStream = Files.newInputStream(source);
-            try {
-                byte[] buffer = new byte[(int) source.toFile().length()];
-                readBytes(inputStream, buffer);
-                final Resource r = t.transform(new Resource(source.toString(), buffer));
-                final byte[] targetBytes = r != null ? r.getData() : null;
-                if (targetBytes != null) {
-                    // write modified class content
-                    sourceBAIS = new ByteArrayInputStream(targetBytes);
-                } else {
-                    sourceBAIS = Files.newInputStream(source);
-                }
-                Files.copy(sourceBAIS, target);
-            } finally {
-                inputStream.close();
-                if (sourceBAIS != null) {
-                    sourceBAIS.close();
-                }
-            }
-        } else {
-            System.err.println("unexpected file extension type " + source.toString());
-        }
-    }
-
-    private static void readBytes(final InputStream is, final byte[] clazz) throws IOException {
-        int offset = 0;
-        while (offset < clazz.length) {
-            offset += is.read(clazz, offset, clazz.length - offset);
-        }
-    }
-
 
     private static class MyAnnotationVisitor extends AnnotationVisitor {
         public MyAnnotationVisitor(AnnotationVisitor av) {

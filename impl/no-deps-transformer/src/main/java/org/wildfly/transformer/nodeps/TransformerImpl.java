@@ -19,6 +19,7 @@ import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
 import static org.wildfly.transformer.nodeps.ClassFileUtils.*;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.wildfly.transformer.Transformer;
-import org.wildfly.transformer.Transformer.Resource;
 
 /**
  * Class file transformer.
@@ -76,11 +76,31 @@ public final class TransformerImpl implements Transformer {
         this.minimum = minimum;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Resource transform(final Resource r) {
-        final byte[] clazz = r.getData();
+        final String resourceName = r.getName();
+        if (resourceName.endsWith(".class")) {
+            final byte[] newClazz = transform(r.getData());
+            return newClazz != null ? new Resource(resourceName, newClazz) : null;
+        } else if (resourceName.endsWith(".xml")) {
+            return new Resource(resourceName, xmlFile(r.getData()));
+        } else if (resourceName.startsWith("META-INF/services/javax.")) {
+            // rename service files like META-INF/services/javax.persistence.spi.PersistenceProvider
+            // to META-INF/services/jakarta.persistence.spi.PersistenceProvider
+            return new Resource(resourceName.replace("javax.", "jakarta."), r.getData());
+        }
+        return null; // returning null means nothing was transformed (indicates copy original content)
+    }
+
+    private static byte[] xmlFile(final byte[] data) {
+        try {
+            return new String(data, "UTF-8").replace("javax.", "jakarta.").getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return null; // should never happen
+        }
+    }
+
+    private byte[] transform(final byte[] clazz) {
         final int[] constantPool = getConstantPool(clazz);
         int diffInBytes = 0, position, utf8Length;
         byte tag;
@@ -120,7 +140,7 @@ public final class TransformerImpl implements Transformer {
             }
         }
         try {
-            return patches == null ? null : new Resource(r.getName(), applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches));
+            return patches == null ? null : applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches);
         } finally {
             if (DEBUG && patches != null) {
                 synchronized (System.out) {
