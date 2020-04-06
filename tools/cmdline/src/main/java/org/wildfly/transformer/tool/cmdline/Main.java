@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.nodeps;
+package org.wildfly.transformer.tool.cmdline;
 
 import java.io.Closeable;
 import java.io.File;
@@ -29,6 +29,8 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 
 import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.Transformer.Resource;
+import org.wildfly.transformer.TransformerFactory;
 
 /**
  * Command line tool for transforming class files or jar files.
@@ -90,10 +92,11 @@ public final class Main {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
 
-        final Transformer t = TransformerFactoryImpl.getInstance().newTransformer();
+        final Transformer t = TransformerFactory.getInstance().newTransformer();
         byte[] clazz = new byte[(int)inClassFile.length()];
         readBytes(new FileInputStream(inClassFile), clazz, true);
-        clazz = t.transform(clazz);
+        final Resource newResource = t.transform(new Resource(inClassFile.getName(), clazz));
+        clazz = newResource != null ? newResource.getData() : clazz;
         writeBytes(new FileOutputStream(outClassFile), clazz, true);
     }
 
@@ -129,12 +132,13 @@ public final class Main {
     }
 
     private static void transformJarFile(final File inJarFile, final File outJarFile) throws IOException {
-        final Transformer t = TransformerFactoryImpl.getInstance().newTransformer();
+        final Transformer t = TransformerFactory.getInstance().newTransformer();
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
         JarEntry inJarEntry, outJarEntry;
-        byte[] buffer, newBuffer = null;
+        byte[] buffer;
+        Resource oldResource, newResource;
 
         try {
             jar = new JarFile(inJarFile);
@@ -155,19 +159,18 @@ public final class Main {
                 // reading original jar file entry
                 buffer = new byte[(int) inJarEntry.getSize()];
                 readBytes(jar.getInputStream(inJarEntry), buffer, true);
-                // transform byte code of class files
-                if (inJarEntry.getName().endsWith(CLASS_FILE_EXT)) {
-                    newBuffer = t.transform(buffer);
-                    if (newBuffer == null) {
-                        newBuffer = buffer;
-                    }
+                oldResource = new Resource(inJarEntry.getName(), buffer);
+                // transform resource
+                newResource = t.transform(oldResource);
+                if (newResource == null) {
+                    newResource = oldResource;
                 }
-                // writing modified jar file entry
-                outJarEntry = new JarEntry(inJarEntry.getName());
-                outJarEntry.setSize(newBuffer.length);
+                // writing potentially modified jar file entry
+                outJarEntry = new JarEntry(newResource.getName());
+                outJarEntry.setSize(newResource.getData().length);
                 outJarEntry.setTime(calendar.getTimeInMillis());
                 jarOutputStream.putNextEntry(outJarEntry);
-                writeBytes(jarOutputStream, newBuffer, false);
+                writeBytes(jarOutputStream, newResource.getData(), false);
                 jarOutputStream.closeEntry();
             }
         } finally {
