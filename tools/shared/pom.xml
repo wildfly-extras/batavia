@@ -28,8 +28,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <name>Transformer Command Line Tool</name>
-  <artifactId>transformer-cmdline-tool</artifactId>
+  <name>Transformer Shared Tool</name>
+  <artifactId>transformer-shared-tool</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>
@@ -37,12 +37,6 @@
       <groupId>org.wildfly-extras</groupId>
       <artifactId>transformer-api</artifactId>
     </dependency>
-      <dependency>
-          <groupId>org.wildfly-extras</groupId>
-          <artifactId>transformer-shared-tool</artifactId>
-          <version>1.0.0.Alpha1-SNAPSHOT</version>
-          <scope>compile</scope>
-      </dependency>
   </dependencies>
 
 </project>

@@ -77,6 +77,22 @@ public class MavenPluginTransformer
             throws MojoExecutionException {
         dump();
 
+        File outputDirectory = new File(outputFolder);
+        // transform files in output folder 
+        if (outputDirectory.isDirectory()) {
+            // TODO: also handle transforming project dependencies,
+            //       each transformed dependendency needs to be switched to, in project pom
+            
+            // For now, just transform files in output folder
+            try {
+                HandleTransformation.transformFolder(outputDirectory);
+            } catch (IOException e) {
+                throw new MojoExecutionException(e.getMessage(), e);
+            }
+        } else {
+            System.out.println("TODO: handle other cases, like transforming a jar/war/ear file");
+        }
+                
         //if (!outputJar.exists()) {
         //    outputJar.mkdirs();
         //}
@@ -84,7 +100,7 @@ public class MavenPluginTransformer
         //if (!inputJar.exists()) {
         //    throw new MojoExecutionException("input file " + inputJar.getName() + " does not exist");
         //}
-        System.out.println("TODO: load transformer and run transformer");
+        
     }
 
     void dump() {
