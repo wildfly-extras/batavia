@@ -46,6 +46,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
 import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.Transformer.Resource;
 
 /**
  * Transformer
@@ -64,8 +65,11 @@ public class TransformerImpl implements Transformer {
     private boolean classTransformed;
     private boolean alreadyTransformed;
 
-    public byte[] transform(final byte[] clazz) {
-        ClassReader classReader = new ClassReader(clazz);
+    /**
+     * {@inheritDoc}
+     */
+    public Resource transform(final Resource r) {
+        ClassReader classReader = new ClassReader(r.getData());
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
         classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, classWriter) {
@@ -306,7 +310,7 @@ public class TransformerImpl implements Transformer {
         }
 
         byte[] result = classWriter.toByteArray();
-        return result;
+        return new Resource(r.getName(), result);
     }
 
     private static Map <String, String> replacementMap = new HashMap<>();
@@ -541,7 +545,8 @@ public class TransformerImpl implements Transformer {
         }
         InputStream sourceBAIS = null;
         try {
-            final byte[] targetBytes = t.transform(byteBuffer);
+            final Resource r = t.transform(new Resource(jarEntry.getName(), byteBuffer));
+            final byte[] targetBytes = r != null ? r.getData() : null;
             if (targetBytes != null) {
                 // will write modified class content
                 sourceBAIS = new ByteArrayInputStream(targetBytes);
@@ -572,7 +577,8 @@ public class TransformerImpl implements Transformer {
             try {
                 byte[] buffer = new byte[(int) source.toFile().length()];
                 readBytes(inputStream, buffer);
-                final byte[] targetBytes = t.transform(buffer);
+                final Resource r = t.transform(new Resource(source.toString(), buffer));
+                final byte[] targetBytes = r != null ? r.getData() : null;
                 if (targetBytes != null) {
                     // write modified class content
                     sourceBAIS = new ByteArrayInputStream(targetBytes);

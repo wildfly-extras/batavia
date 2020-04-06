@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.Transformer.Resource;
 
 /**
  * Class file transformer.
@@ -76,12 +77,10 @@ public final class TransformerImpl implements Transformer {
     }
 
     /**
-     * Transforms class byte code to new class byte code if mapping was applied otherwise returns original class byte code.
-     *
-     * @param clazz class byte code to be investigated if mapping should be applied
-     * @return either original class byte code if mapping wasn't applied or modified class byte code if mapping was applied
+     * {@inheritDoc}
      */
-    public byte[] transform(final byte[] clazz) {
+    public Resource transform(final Resource r) {
+        final byte[] clazz = r.getData();
         final int[] constantPool = getConstantPool(clazz);
         int diffInBytes = 0, position, utf8Length;
         byte tag;
@@ -121,7 +120,7 @@ public final class TransformerImpl implements Transformer {
             }
         }
         try {
-            return patches == null ? null : applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches);
+            return patches == null ? null : new Resource(r.getName(), applyPatches(clazz, clazz.length + diffInBytes, constantPool, patches));
         } finally {
             if (DEBUG && patches != null) {
                 synchronized (System.out) {
