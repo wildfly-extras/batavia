@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.nodeps;
+package org.wildfly.transformer.tool.cmdline;
 
 import java.io.Closeable;
 import java.io.File;
@@ -29,6 +29,7 @@ import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 
 import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.TransformerFactory;
 
 /**
  * Command line tool for transforming class files or jar files.
@@ -90,7 +91,7 @@ public final class Main {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
 
-        final Transformer t = TransformerFactoryImpl.getInstance().newTransformer();
+        final Transformer t = TransformerFactory.getInstance().newTransformer();
         byte[] clazz = new byte[(int)inClassFile.length()];
         readBytes(new FileInputStream(inClassFile), clazz, true);
         clazz = t.transform(clazz);
@@ -129,7 +130,7 @@ public final class Main {
     }
 
     private static void transformJarFile(final File inJarFile, final File outJarFile) throws IOException {
-        final Transformer t = TransformerFactoryImpl.getInstance().newTransformer();
+        final Transformer t = TransformerFactory.getInstance().newTransformer();
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
