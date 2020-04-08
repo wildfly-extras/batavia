@@ -17,7 +17,9 @@ package org.wildfly.transformer.tool.cmdline;
 
 import java.io.File;
 import java.io.IOException;
-import org.wildfly.transformer.tool.shared.Common;
+
+import org.wildfly.transformer.transformer.tool.shared.Common;
+
 
 /**
  * Command line tool for transforming class files or jar files.
