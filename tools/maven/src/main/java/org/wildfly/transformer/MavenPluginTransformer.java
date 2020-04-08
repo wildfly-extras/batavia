@@ -24,16 +24,15 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Transform inputJar to outputJar.
+ * 
+ * @author Scott Marlow
  *
  * @goal touch
  * @phase process-sources
@@ -67,39 +66,40 @@ public class MavenPluginTransformer
     @Parameter(defaultValue = "${project.compileClasspathElements}", required = true, readonly = true)
     private List<String> compileClasspathElements;
     
-    //@Parameter(defaultValue = "inputJar.jar",required = false)
-    //private File inputJar;
+    @Parameter(property = "inputFile")
+    private File inputFile;
 
-    //@Parameter(defaultValue = "outputJar.jar",required = false)
-    //private File outputJar;
-
+    @Parameter(property = "outputFile")
+    private File outputFile;
+    
     public void execute()
             throws MojoExecutionException {
         dump();
 
-        File outputDirectory = new File(outputFolder);
-        // transform files in output folder 
-        if (outputDirectory.isDirectory()) {
-            // TODO: also handle transforming project dependencies,
-            //       each transformed dependendency needs to be switched to, in project pom
-            
-            // For now, just transform files in output folder
+        if (inputFile != null && outputFile != null) {
             try {
-                HandleTransformation.transformFolder(outputDirectory);
+                HandleTransformation.transformFile(inputFile, outputFile);
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage(), e);
             }
-        } else {
-            System.out.println("TODO: handle other cases, like transforming a jar/war/ear file");
         }
-                
-        //if (!outputJar.exists()) {
-        //    outputJar.mkdirs();
-        //}
-        //
-        //if (!inputJar.exists()) {
-        //    throw new MojoExecutionException("input file " + inputJar.getName() + " does not exist");
-        //}
+        else if( outputFolder != null) {
+            File outputDirectory = new File(outputFolder);
+            // transform files in output folder 
+            if (outputDirectory.isDirectory()) {
+                // TODO: also handle transforming project dependencies,
+                //       each transformed dependendency needs to be switched to, in project pom
+
+                // For now, just transform files in output folder
+                try {
+                    HandleTransformation.transformDirectory(outputDirectory);
+                } catch (IOException e) {
+                    throw new MojoExecutionException(e.getMessage(), e);
+                }
+            } else {
+                System.out.println("TODO: handle other cases, like transforming a jar/war/ear file");
+            }
+        }
         
     }
 
@@ -118,31 +118,8 @@ public class MavenPluginTransformer
         System.out.println("version = " + version);
         System.out.println("packaging = " + packaging);
         System.out.println("outputFolder = " + outputFolder);
-        if (outputFolder != null) {
-            try {
-                Process process = Runtime.getRuntime().exec("tree " + outputFolder);
-                int exitValue = 0;
-                try {
-                    exitValue = process.waitFor();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                if (exitValue != 0) {
-                    System.out.println("ls command failed with: " + exitValue);
-                }
-                String line;
-                BufferedReader br = 
-                        new BufferedReader(new InputStreamReader(process.getInputStream()));
-                while ((line = br.readLine()) != null) {
-                    System.out.println(line);
-                }
-                process.destroy();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
         System.out.println("compileClasspathElements = " + compileClasspathElements);
-        
-        
+        System.out.println("inputJar =  " + inputFile);
+        System.out.println("outputJar =  " + outputFile);
     }
 }

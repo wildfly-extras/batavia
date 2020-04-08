@@ -15,22 +15,8 @@
  */
 package org.wildfly.transformer.tool.cmdline;
 
-import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Enumeration;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarOutputStream;
-
-import org.wildfly.transformer.Transformer;
-import org.wildfly.transformer.Transformer.Resource;
-import org.wildfly.transformer.TransformerFactory;
 import org.wildfly.transformer.tool.shared.Common;
 
 /**

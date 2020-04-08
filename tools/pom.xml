@@ -34,7 +34,7 @@
 
   <modules>
     <module>cmdline</module>
-    <module>maven-plugin</module>
+    <module>maven</module>
     <module>shared</module>
   </modules>
 
