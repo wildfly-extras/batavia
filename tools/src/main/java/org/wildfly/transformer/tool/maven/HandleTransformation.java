@@ -1,9 +1,9 @@
-package org.wildfly.transformer;
+package org.wildfly.transformer.tool.maven;
 
 import java.io.File;
 import java.io.IOException;
 
-import org.wildfly.transformer.transformer.tool.shared.Common;
+import org.wildfly.transformer.tool.shared.Common;
 
 /**
  * HandleTransformation

@@ -1,4 +1,4 @@
-package org.wildfly.transformer;
+package org.wildfly.transformer.tool.maven;
 
 /*
  * Copyright 2020 The Apache Software Foundation.
