@@ -74,7 +74,6 @@
   <modules>
     <module>api</module>
     <module>impl</module>
-    <module>maven-plugin</module>
     <module>tools</module>
   </modules>
 
