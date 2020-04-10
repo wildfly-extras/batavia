@@ -1,5 +1,3 @@
-package org.wildfly.transformer.tool.maven;
-
 /*
  * Copyright 2020 The Apache Software Foundation.
  *
@@ -15,6 +13,7 @@ package org.wildfly.transformer.tool.maven;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.wildfly.transformer.tool.maven;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -38,10 +37,8 @@ import java.util.Map;
  * @phase process-sources
  */
 @Mojo(name = "enhance", defaultPhase = LifecyclePhase.PROCESS_CLASSES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class MavenPluginTransformer
-        extends AbstractMojo {
+public class MavenPluginTransformer extends AbstractMojo {
 
-    
     @Parameter(defaultValue = "${project.basedir}", readonly = true)
     private File projectRootFolder;
     
@@ -72,8 +69,7 @@ public class MavenPluginTransformer
     @Parameter(property = "outputFile")
     private File outputFile;
     
-    public void execute()
-            throws MojoExecutionException {
+    public void execute() throws MojoExecutionException {
         dump();
 
         if (inputFile != null && outputFile != null) {
@@ -82,8 +78,7 @@ public class MavenPluginTransformer
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage(), e);
             }
-        }
-        else if( outputFolder != null) {
+        } else if (outputFolder != null) {
             File outputDirectory = new File(outputFolder);
             // transform files in output folder 
             if (outputDirectory.isDirectory()) {
@@ -103,7 +98,7 @@ public class MavenPluginTransformer
         
     }
 
-    void dump() {
+    private void dump() {
         System.out.println("dump of maven Mojo state stuff:");
         Map pluginContext = getPluginContext();
         // show plugin context map key + values
@@ -122,4 +117,5 @@ public class MavenPluginTransformer
         System.out.println("inputJar =  " + inputFile);
         System.out.println("outputJar =  " + outputFile);
     }
+
 }

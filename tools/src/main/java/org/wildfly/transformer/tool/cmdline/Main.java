@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.wildfly.transformer.tool.shared.Common;
 
-
 /**
  * Command line tool for transforming class files or jar files.
  *
@@ -28,7 +27,6 @@ import org.wildfly.transformer.tool.shared.Common;
  * @author Scott Marlow 
  */
 public final class Main extends Common {
-
 
     public static void main(final String... args) throws IOException {
         if (!validParameters(args)) {
