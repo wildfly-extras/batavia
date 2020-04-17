@@ -20,7 +20,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
@@ -30,76 +29,120 @@ import java.util.Map;
 
 /**
  * Transform inputJar to outputJar.
- * 
- * @author Scott Marlow
  *
- * @goal touch
- * @phase process-sources
+ * @author Scott Marlow
+ * @goal transform-classes
+ * @phase package
  */
-@Mojo(name = "enhance", defaultPhase = LifecyclePhase.PROCESS_CLASSES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name = "package", defaultPhase = LifecyclePhase.PACKAGE)
 public class MavenPluginTransformer extends AbstractMojo {
 
     @Parameter(defaultValue = "${project.basedir}", readonly = true)
     private File projectRootFolder;
-    
+
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
-    
+
     @Parameter(defaultValue = "${project.groupId}", required = true, readonly = true)
     private String groupId;
-    
+
     @Parameter(defaultValue = "${project.artifactId}", required = true, readonly = true)
     private String artifactId;
-    
+
     @Parameter(defaultValue = "${project.version}", required = true, readonly = true)
     private String version;
-    
+
     @Parameter(defaultValue = "${project.packaging}", required = true, readonly = true)
     private String packaging;
-    
+
+    @Parameter(defaultValue = "${project.build.directory}", required = true, readonly = true)
+    private String buildFolder;
+
+    @Parameter(defaultValue = "${project.build.finalName}", required = true, readonly = true)
+    private String targetName;
+
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
     private String outputFolder;
-    
+
     @Parameter(defaultValue = "${project.compileClasspathElements}", required = true, readonly = true)
     private List<String> compileClasspathElements;
-    
+
+    /**
+     * Specifying the inputFile + outputFile, is kind of an experiment to allow the maven plugin to
+     * transform a specific input file, into an output file.  It will be done in addition to maven processing.
+     */
     @Parameter(property = "inputFile")
     private File inputFile;
 
     @Parameter(property = "outputFile")
     private File outputFile;
-    
+
     public void execute() throws MojoExecutionException {
         dump();
 
         if (inputFile != null && outputFile != null) {
             try {
+                System.out.println("transforming specific input " + inputFile.getName() + " into " + outputFile.getName());
                 HandleTransformation.transformFile(inputFile, outputFile);
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage(), e);
             }
-        } else if (outputFolder != null) {
+        }
+
+        if (outputFolder != null) {
             File outputDirectory = new File(outputFolder);
             // transform files in output folder 
             if (outputDirectory.isDirectory()) {
                 // TODO: also handle transforming project dependencies,
                 //       each transformed dependendency needs to be switched to, in project pom
+                //       look at various other wildfly/quarkus maven plugins as well for ideas.  
 
-                // For now, just transform files in output folder
+                // transform files in output folder
                 try {
+                    System.out.println("transforming contents of folder " + outputDirectory);
                     HandleTransformation.transformDirectory(outputDirectory);
                 } catch (IOException e) {
                     throw new MojoExecutionException(e.getMessage(), e);
                 }
-            } else {
-                System.out.println("TODO: handle other cases, like transforming a jar/war/ear file");
             }
         }
-        
+
+        inputFile = null;
+
+        if (mavenProject != null && mavenProject != null && mavenProject.getArtifact() != null && mavenProject.getArtifact().getFile() != null) {
+            inputFile = mavenProject.getArtifact().getFile();
+        } else if ((packaging.contains("jar") || packaging.contains("war") || packaging.contains("ear"))
+                && buildFolder != null && targetName != null) {
+            inputFile = new File(buildFolder + File.separatorChar + targetName + "." + packaging.toString());
+        } else if (buildFolder != null && targetName != null) {
+            inputFile = new File(buildFolder + File.separatorChar + targetName + "." + "jar");
+        }
+        if (inputFile != null && inputFile.exists()) {
+            outputFile = new File(inputFile.getName() + ".temp");
+            System.out.println("transforming " + inputFile.getName() + " into " + outputFile.getName());
+            try {
+                HandleTransformation.transformFile(inputFile, outputFile);
+                if (outputFile.exists()) {
+                    System.out.println("transformer generated output file " + outputFile.getName() + " " +
+                            " outputFile size = " + outputFile.length());
+                    System.out.println("deleting " + inputFile.getName());
+                    inputFile.delete();
+                    System.out.println("rename " + outputFile.getName() + " to " + inputFile.getName());
+                    outputFile.renameTo(inputFile);
+                } else {
+                    System.out.println("transformer didn't generate " + outputFile.getName());
+                }
+            } catch (IOException e) {
+                System.out.println(" caught exception " + e.getMessage());
+                throw new MojoExecutionException(e.getMessage(), e);
+            }
+        }
+
+
     }
 
     private void dump() {
-        System.out.println("dump of maven Mojo state stuff:");
+        System.out.println(this.getClass().getName() + " dump of maven Mojo state stuff:");
         Map pluginContext = getPluginContext();
         // show plugin context map key + values
         for (Object key : pluginContext.keySet()) {
@@ -113,9 +156,11 @@ public class MavenPluginTransformer extends AbstractMojo {
         System.out.println("version = " + version);
         System.out.println("packaging = " + packaging);
         System.out.println("outputFolder = " + outputFolder);
+        System.out.println("buildFolder = " + buildFolder);
         System.out.println("compileClasspathElements = " + compileClasspathElements);
         System.out.println("inputJar =  " + inputFile);
         System.out.println("outputJar =  " + outputFile);
+        System.out.println("targetName = " + targetName);
     }
 
 }
