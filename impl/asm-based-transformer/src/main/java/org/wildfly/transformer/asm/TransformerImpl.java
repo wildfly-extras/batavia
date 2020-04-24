@@ -48,6 +48,9 @@ import org.wildfly.transformer.Transformer;
  */
 public class TransformerImpl implements Transformer {
 
+    private static final String CLASS_SUFFIX = ".class";
+    private static final String XML_SUFFIX = ".xml";
+    private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private boolean alreadyTransformed;
@@ -299,84 +302,84 @@ public class TransformerImpl implements Transformer {
         return classWriter.toByteArray();
     }
 
-    private static Map <String, String> replacementMap = new HashMap<>();
-    static { 
-        replacementMap.put("javax/annotation/security", "jakarta/annotation/security");
-        replacementMap.put("javax/annotation/sql", "jakarta/annotation/sql");
-        replacementMap.put("javax/annotation/G", "jakarta/annotation/G");
-        replacementMap.put("javax/annotation/M", "jakarta/annotation/M");
-        replacementMap.put("javax/annotation/P", "jakarta/annotation/P");
-        replacementMap.put("javax/annotation/R", "jakarta/annotation/R");
-        replacementMap.put("javax/batch", "jakarta/batch");
-        replacementMap.put("javax/decorator", "jakarta/decorator");
-        replacementMap.put("javax/ejb", "jakarta/ejb");
-        replacementMap.put("javax/el", "jakarta/el");
-        replacementMap.put("javax/enterprise", "jakarta/enterprise");
-        replacementMap.put("javax/faces", "jakarta/faces");
-        replacementMap.put("javax/inject", "jakarta/inject");
-        replacementMap.put("javax/interceptor", "jakarta/interceptor");
-        replacementMap.put("javax/jms", "jakarta/jms");
-        replacementMap.put("javax/json", "jakarta/json");
-        replacementMap.put("javax/mail", "jakarta/mail");
-        replacementMap.put("javax/persistence", "jakarta/persistence");
-        replacementMap.put("javax/resource", "jakarta/resource");
-        replacementMap.put("javax/security/auth", "jakarta/security/auth");
-        replacementMap.put("javax/security/enterprise", "jakarta/security/enterprise");
-        replacementMap.put("javax/security/jacc", "jakarta/security/jacc");
-        replacementMap.put("javax/servlet", "jakarta/servlet");
+    private static Map <String, String> mappingWithSeps = new HashMap<>();
+    private static Map <String, String> mappingWithDots = new HashMap<>();
+    static {
+        // init map with '/'
+        mappingWithSeps.put("javax/annotation/security", "jakarta/annotation/security");
+        mappingWithSeps.put("javax/annotation/sql", "jakarta/annotation/sql");
+        mappingWithSeps.put("javax/annotation/G", "jakarta/annotation/G");
+        mappingWithSeps.put("javax/annotation/M", "jakarta/annotation/M");
+        mappingWithSeps.put("javax/annotation/P", "jakarta/annotation/P");
+        mappingWithSeps.put("javax/annotation/R", "jakarta/annotation/R");
+        mappingWithSeps.put("javax/batch", "jakarta/batch");
+        mappingWithSeps.put("javax/decorator", "jakarta/decorator");
+        mappingWithSeps.put("javax/ejb", "jakarta/ejb");
+        mappingWithSeps.put("javax/el", "jakarta/el");
+        mappingWithSeps.put("javax/enterprise", "jakarta/enterprise");
+        mappingWithSeps.put("javax/faces", "jakarta/faces");
+        mappingWithSeps.put("javax/inject", "jakarta/inject");
+        mappingWithSeps.put("javax/interceptor", "jakarta/interceptor");
+        mappingWithSeps.put("javax/jms", "jakarta/jms");
+        mappingWithSeps.put("javax/json", "jakarta/json");
+        mappingWithSeps.put("javax/mail", "jakarta/mail");
+        mappingWithSeps.put("javax/persistence", "jakarta/persistence");
+        mappingWithSeps.put("javax/resource", "jakarta/resource");
+        mappingWithSeps.put("javax/security/auth", "jakarta/security/auth");
+        mappingWithSeps.put("javax/security/enterprise", "jakarta/security/enterprise");
+        mappingWithSeps.put("javax/security/jacc", "jakarta/security/jacc");
+        mappingWithSeps.put("javax/servlet", "jakarta/servlet");
         // only need to match with first letter of javax.transaction level classes
-        replacementMap.put("javax/transaction/H", "jakarta/transaction/H");
-        replacementMap.put("javax/transaction/I", "jakarta/transaction/I");
-        replacementMap.put("javax/transaction/N", "jakarta/transaction/N");
-        replacementMap.put("javax/transaction/R", "jakarta/transaction/R");
-        replacementMap.put("javax/transaction/S", "jakarta/transaction/S");
-        replacementMap.put("javax/transaction/T", "jakarta/transaction/T");
-        replacementMap.put("javax/transaction/U", "jakarta/transaction/U");
-        replacementMap.put("javax/validation", "jakarta/validation");
-        replacementMap.put("javax/websocket", "jakarta/websocket");
-        replacementMap.put("javax/ws/rs", "jakarta/ws/rs");
-        replacementMap.put("javax.annotation.security", "jakarta.annotation.security");
-        replacementMap.put("javax.annotation.sql", "jakarta.annotation.sql");
-        replacementMap.put("javax.annotation.security", "jakarta.annotation.security");
-        replacementMap.put("javax.annotation.sql", "jakarta.annotation.sql");
-        replacementMap.put("javax.annotation.G", "jakarta.annotation.G");
-        replacementMap.put("javax.annotation.M", "jakarta.annotation.M");
-        replacementMap.put("javax.annotation.P", "jakarta.annotation.P");
-        replacementMap.put("javax.annotation.R", "jakarta.annotation.R");
-        replacementMap.put("javax.batch", "jakarta.batch");
-        replacementMap.put("javax.decorator", "jakarta.decorator");
-        replacementMap.put("javax.ejb", "jakarta.ejb");
-        replacementMap.put("javax.el", "jakarta.el");
-        replacementMap.put("javax.enterprise", "jakarta.enterprise");
-        replacementMap.put("javax.faces", "jakarta.faces");
-        replacementMap.put("javax.inject", "jakarta.inject");
-        replacementMap.put("javax.interceptor", "jakarta.interceptor");
-        replacementMap.put("javax.jms", "jakarta.jms");
-        replacementMap.put("javax.json", "jakarta.json");
-        replacementMap.put("javax.mail", "jakarta.mail");
-        replacementMap.put("javax.persistence", "jakarta.persistence");
-        replacementMap.put("javax.resource", "jakarta.resource");
-        replacementMap.put("javax.security.auth", "jakarta.security.auth");
-        replacementMap.put("javax.security.enterprise", "jakarta.security.enterprise");
-        replacementMap.put("javax.security.jacc", "jakarta.security.jacc");
-        replacementMap.put("javax.servlet", "jakarta.servlet");
+        mappingWithSeps.put("javax/transaction/H", "jakarta/transaction/H");
+        mappingWithSeps.put("javax/transaction/I", "jakarta/transaction/I");
+        mappingWithSeps.put("javax/transaction/N", "jakarta/transaction/N");
+        mappingWithSeps.put("javax/transaction/R", "jakarta/transaction/R");
+        mappingWithSeps.put("javax/transaction/S", "jakarta/transaction/S");
+        mappingWithSeps.put("javax/transaction/T", "jakarta/transaction/T");
+        mappingWithSeps.put("javax/transaction/U", "jakarta/transaction/U");
+        mappingWithSeps.put("javax/validation", "jakarta/validation");
+        mappingWithSeps.put("javax/websocket", "jakarta/websocket");
+        mappingWithSeps.put("javax/ws/rs", "jakarta/ws/rs");
+        // init map with '.'
+        mappingWithDots.put("javax.annotation.security", "jakarta.annotation.security");
+        mappingWithDots.put("javax.annotation.sql", "jakarta.annotation.sql");
+        mappingWithDots.put("javax.annotation.G", "jakarta.annotation.G");
+        mappingWithDots.put("javax.annotation.M", "jakarta.annotation.M");
+        mappingWithDots.put("javax.annotation.P", "jakarta.annotation.P");
+        mappingWithDots.put("javax.annotation.R", "jakarta.annotation.R");
+        mappingWithDots.put("javax.batch", "jakarta.batch");
+        mappingWithDots.put("javax.decorator", "jakarta.decorator");
+        mappingWithDots.put("javax.ejb", "jakarta.ejb");
+        mappingWithDots.put("javax.el", "jakarta.el");
+        mappingWithDots.put("javax.enterprise", "jakarta.enterprise");
+        mappingWithDots.put("javax.faces", "jakarta.faces");
+        mappingWithDots.put("javax.inject", "jakarta.inject");
+        mappingWithDots.put("javax.interceptor", "jakarta.interceptor");
+        mappingWithDots.put("javax.jms", "jakarta.jms");
+        mappingWithDots.put("javax.json", "jakarta.json");
+        mappingWithDots.put("javax.mail", "jakarta.mail");
+        mappingWithDots.put("javax.persistence", "jakarta.persistence");
+        mappingWithDots.put("javax.resource", "jakarta.resource");
+        mappingWithDots.put("javax.security.auth", "jakarta.security.auth");
+        mappingWithDots.put("javax.security.enterprise", "jakarta.security.enterprise");
+        mappingWithDots.put("javax.security.jacc", "jakarta.security.jacc");
+        mappingWithDots.put("javax.servlet", "jakarta.servlet");
         // only need to match with first letter of javax.transaction level classes
-        replacementMap.put("javax.transaction.H", "jakarta.transaction.H");
-        replacementMap.put("javax.transaction.I", "jakarta.transaction.I");
-        replacementMap.put("javax.transaction.N", "jakarta.transaction.N");
-        replacementMap.put("javax.transaction.R", "jakarta.transaction.R");
-        replacementMap.put("javax.transaction.S", "jakarta.transaction.S");
-        replacementMap.put("javax.transaction.T", "jakarta.transaction.T");
-        replacementMap.put("javax.transaction.U", "jakarta.transaction.U");
-        replacementMap.put("javax.validation", "jakarta.validation");
-        replacementMap.put("javax.websocket", "jakarta.websocket");
-        replacementMap.put("javax.ws.rs", "jakarta.ws.rs");
-        
+        mappingWithDots.put("javax.transaction.H", "jakarta.transaction.H");
+        mappingWithDots.put("javax.transaction.I", "jakarta.transaction.I");
+        mappingWithDots.put("javax.transaction.N", "jakarta.transaction.N");
+        mappingWithDots.put("javax.transaction.R", "jakarta.transaction.R");
+        mappingWithDots.put("javax.transaction.S", "jakarta.transaction.S");
+        mappingWithDots.put("javax.transaction.T", "jakarta.transaction.T");
+        mappingWithDots.put("javax.transaction.U", "jakarta.transaction.U");
+        mappingWithDots.put("javax.validation", "jakarta.validation");
+        mappingWithDots.put("javax.websocket", "jakarta.websocket");
+        mappingWithDots.put("javax.ws.rs", "jakarta.ws.rs");
     };
     
     private static String replaceJavaXwithJakarta(String desc) {
         StringBuilder stringBuilder = new StringBuilder(desc);
-        for(Map.Entry<String, String> possibleReplacement: replacementMap.entrySet()) {
+        for(Map.Entry<String, String> possibleReplacement: mappingWithSeps.entrySet()) {
             String key = possibleReplacement.getKey();
             String value = possibleReplacement.getValue();
             int pos = stringBuilder.indexOf(key, 0);
@@ -420,18 +423,33 @@ public class TransformerImpl implements Transformer {
 
     @Override
     public Resource transform(final Resource r) {
-        final String resourceName = r.getName();
-        if (resourceName.endsWith(".class")) {
+        String oldResourceName = r.getName();
+        String newResourceName = replacePackageName(oldResourceName, false);
+        if (oldResourceName.endsWith(CLASS_SUFFIX)) {
             final byte[] newClazz = transform(r.getData());
-            return newClazz != null ? new Resource(resourceName, newClazz) : null;
-        } else if (resourceName.endsWith(".xml")) {
-            return new Resource(resourceName, xmlFile(r.getData()));
-        } else if (resourceName.startsWith("META-INF/services/javax.")) {
-            // rename service files like META-INF/services/javax.persistence.spi.PersistenceProvider
-            // to META-INF/services/jakarta.persistence.spi.PersistenceProvider
-            return new Resource(resourceName.replace("javax.", "jakarta."), r.getData());
+            if (newClazz != null) return new Resource(newResourceName, newClazz);
+        } else if (oldResourceName.endsWith(XML_SUFFIX)) {
+            return new Resource(newResourceName, xmlFile(r.getData()));
+        } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
+            newResourceName = replacePackageName(oldResourceName, true);
+            if (!newResourceName.equals(oldResourceName)) {
+                return new Resource(newResourceName, r.getData());
+            }
+        } else if (!newResourceName.equals(oldResourceName)) {
+            return new Resource(newResourceName, r.getData());
         }
         return null; // returning null means nothing was transformed (indicates copy original content)
+    }
+
+    private String replacePackageName(final String resourceName, final boolean dotFormat) {
+        int startIndex;
+        for (final Map.Entry<String, String> mapping : (dotFormat ? mappingWithDots : mappingWithSeps).entrySet()) {
+            startIndex = resourceName.indexOf(mapping.getKey());
+            if (startIndex != -1) {
+                return resourceName.substring(0, startIndex) + mapping.getValue() + resourceName.substring(startIndex + mapping.getKey().length());
+            }
+        }
+        return resourceName;
     }
 
     private static byte[] xmlFile(final byte[] data) {
