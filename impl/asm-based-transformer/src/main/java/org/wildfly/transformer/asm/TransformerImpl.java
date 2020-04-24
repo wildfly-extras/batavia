@@ -49,11 +49,13 @@ import org.wildfly.transformer.Transformer;
 public class TransformerImpl implements Transformer {
 
     private static final String CLASS_SUFFIX = ".class";
+    private static final int CLASS_SUFFIX_LENGTH = CLASS_SUFFIX.length(); 
     private static final String XML_SUFFIX = ".xml";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private boolean alreadyTransformed;
+    private String changeClassName;
 
     /**
      * {@inheritDoc}
@@ -97,6 +99,11 @@ public class TransformerImpl implements Transformer {
             // clear transformed state at start of each class visit
             @Override
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                if (changeClassName != null) {
+                    name = changeClassName;
+                    changeClassName = null;
+                }
+                
                 if (superName != null) {
                     String superNameOrig = superName;
                     superName = replaceJavaXwithJakarta(superName);
@@ -422,14 +429,17 @@ public class TransformerImpl implements Transformer {
     @Override
     public Resource transform(final Resource r) {
         
-        clearTransformationState(); // clear transformation state for each resource, prior to transformation
         
         String oldResourceName = r.getName();
         String newResourceName = replacePackageName(oldResourceName, false);
-        if (!newResourceName.equals(oldResourceName)) {  // any file rename counts as a transformation 
-            setClassTransformed(true);
-        }
         if (oldResourceName.endsWith(CLASS_SUFFIX)) {
+            clearTransformationState(); // clear transformation state for each class, prior to class transformation
+                    
+            if (!newResourceName.equals(oldResourceName)) {  // any file rename counts as a transformation 
+                setClassTransformed(true);
+                setNewClassName(newResourceName);
+            }
+                    
             final byte[] newClazz = transform(r.getData());
             if (newClazz != null) return new Resource(newResourceName, newClazz);
         } else if (oldResourceName.endsWith(XML_SUFFIX)) {
@@ -443,6 +453,13 @@ public class TransformerImpl implements Transformer {
             return new Resource(newResourceName, r.getData());
         }
         return null; // returning null means nothing was transformed (indicates copy original content)
+    }
+
+    private void setNewClassName(String newClassName) {
+        if (newClassName.endsWith(CLASS_SUFFIX)) {
+            newClassName = newClassName.substring(0,newClassName.length() - CLASS_SUFFIX_LENGTH);
+        }
+        changeClassName = newClassName;
     }
 
     private String replacePackageName(final String resourceName, final boolean dotFormat) {
