@@ -29,8 +29,8 @@ import java.util.Properties;
 public final class TransformerFactoryImpl extends TransformerFactory {
 
     private static final String DEFAULT_CONFIG = "default.mapping";
-    private static final char DOT = '.';
-    private static final char SEP = '/';
+    static final char DOT = '.';
+    static final char SEP = '/';
 
     @Override
     public Transformer newTransformer() throws IOException {

@@ -18,6 +18,7 @@ package org.wildfly.transformer.nodeps;
 import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
 import static org.wildfly.transformer.nodeps.ClassFileUtils.*;
+import static org.wildfly.transformer.nodeps.TransformerFactoryImpl.*;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -36,6 +37,10 @@ import org.wildfly.transformer.Transformer;
  */
 public final class TransformerImpl implements Transformer {
 
+    private static final String CLASS_SUFFIX = ".class";
+    private static final String XML_SUFFIX = ".xml";
+    private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
+
     /**
      * Patch info mask.
      */
@@ -45,6 +50,16 @@ public final class TransformerImpl implements Transformer {
      * Debugging support.
      */
     private static final boolean DEBUG = Boolean.getBoolean(TransformerImpl.class.getName() + ".debug");
+
+    /**
+     * Packages mapping with '/' char.
+     */
+    final Map<String, String> mappingWithSeps;
+
+    /**
+     * Packages mapping with '.' char.
+     */
+    final Map<String, String> mappingWithDots;
 
     /**
      * Represents strings we are searching for in <code>CONSTANT_Utf8_info</code> structures (encoded in modified UTF-8).
@@ -66,34 +81,61 @@ public final class TransformerImpl implements Transformer {
     /**
      * Constructor.
      *
-     * @param mappingFrom modified UTF-8 encoded search strings
-     * @param mappingTo modified UTF-8 encoded patch strings
-     * @param minimum length of the smallest search string
+     * @param mapping packages mapping
      */
-    private TransformerImpl(final byte[][] mappingFrom, final byte[][] mappingTo, final int minimum) {
-        this.mappingFrom = mappingFrom;
-        this.mappingTo = mappingTo;
+    private TransformerImpl(final Map<String, String> mapping) {
+        this.mappingWithSeps = mapping;
+        this.mappingWithDots =  new HashMap<>(mapping.size());
+        this.mappingFrom = new byte[mapping.size() + 1][];
+        this.mappingTo = new byte[mapping.size() + 1][];
+        int i = 1;
+        int minimum = Integer.MAX_VALUE;
+        for (Map.Entry<String, String> mappingEntry : mapping.entrySet()) {
+            mappingWithDots.put(mappingEntry.getKey().replace(SEP, DOT), mappingEntry.getValue().replace(SEP, DOT));
+            mappingFrom[i] = stringToUtf8(mappingEntry.getKey());
+            mappingTo[i] = stringToUtf8(mappingEntry.getValue());
+            if (minimum > mappingFrom[i].length) {
+                minimum = mappingFrom[i].length;
+            }
+            i++;
+        }
         this.minimum = minimum;
     }
 
     @Override
     public Resource transform(final Resource r) {
-        final String resourceName = r.getName();
-        if (resourceName.endsWith(".class")) {
+        String oldResourceName = r.getName();
+        String newResourceName = replacePackageName(oldResourceName, false);
+        if (oldResourceName.endsWith(CLASS_SUFFIX)) {
             final byte[] newClazz = transform(r.getData());
-            return newClazz != null ? new Resource(resourceName, newClazz) : null;
-        } else if (resourceName.endsWith(".xml")) {
-            return new Resource(resourceName, xmlFile(r.getData()));
-        } else if (resourceName.startsWith("META-INF/services/javax.")) {
-            // rename service files like META-INF/services/javax.persistence.spi.PersistenceProvider
-            // to META-INF/services/jakarta.persistence.spi.PersistenceProvider
-            return new Resource(resourceName.replace("javax.", "jakarta."), r.getData());
+            if (newClazz != null) return new Resource(newResourceName, newClazz);
+        } else if (oldResourceName.endsWith(XML_SUFFIX)) {
+            return new Resource(newResourceName, xmlFile(r.getData()));
+        } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
+            newResourceName = replacePackageName(oldResourceName, true);
+            if (!newResourceName.equals(oldResourceName)) {
+                return new Resource(newResourceName, r.getData());
+            }
+        } else if (!newResourceName.equals(oldResourceName)) {
+            return new Resource(newResourceName, r.getData());
         }
         return null; // returning null means nothing was transformed (indicates copy original content)
     }
 
+    private String replacePackageName(final String resourceName, final boolean dotFormat) {
+        int startIndex;
+        for (final Map.Entry<String, String> mapping : (dotFormat ? mappingWithDots : mappingWithSeps).entrySet()) {
+            startIndex = resourceName.indexOf(mapping.getKey());
+            if (startIndex != -1) {
+                return resourceName.substring(0, startIndex) + mapping.getValue() + resourceName.substring(startIndex + mapping.getKey().length());
+            }
+        }
+        return resourceName;
+    }
+
     private static byte[] xmlFile(final byte[] data) {
         try {
+            // TODO: use mapping provided in constructor!!!
             return new String(data, "UTF-8").replace("javax.", "jakarta.").getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
             return null; // should never happen
@@ -351,20 +393,7 @@ public final class TransformerImpl implements Transformer {
             if (mapping.size() == 0) throw new IllegalStateException();
             // implementation
             built = true;
-            final int mappingSize = mapping.size() + 1;
-            final byte[][] mappingFrom = new byte[mappingSize][];
-            final byte[][] mappingTo = new byte[mappingSize][];
-            int i = 1;
-            int minimum = Integer.MAX_VALUE;
-            for (Map.Entry<String, String> mappingEntry : mapping.entrySet()) {
-                mappingFrom[i] = stringToUtf8(mappingEntry.getKey());
-                mappingTo[i] = stringToUtf8(mappingEntry.getValue());
-                if (minimum > mappingFrom[i].length) {
-                    minimum = mappingFrom[i].length;
-                }
-                i++;
-            }
-            return new TransformerImpl(mappingFrom, mappingTo, minimum);
+            return new TransformerImpl(mapping);
         }
     }
 
