@@ -26,7 +26,9 @@ import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -224,6 +226,86 @@ public class TransformerImpl implements Transformer {
                             setClassTransformed(true);
                         }
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                    }
+
+                    @Override
+                    public void visitInvokeDynamicInsn(String name, String desc, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
+                        final String descOrig = desc;
+                        desc = replaceJavaXwithJakarta(desc);
+                        final String ownerOrig = bootstrapMethodHandle.getOwner();
+                        String bootstrapMethodHandleOwner = replaceJavaXwithJakarta(ownerOrig);
+                        final String bootstrapMethodHandleDescOrig = bootstrapMethodHandle.getDesc(); 
+                        String bootstrapMethodHandleDesc = replaceJavaXwithJakarta(bootstrapMethodHandleDescOrig);
+                        if (!descOrig.equals(desc)) {  // if we are changing
+                            // mark the class as transformed
+                            setClassTransformed(true);
+                        }
+                        if (!ownerOrig.equals(bootstrapMethodHandleOwner) ||
+                        !bootstrapMethodHandleDescOrig.equals(bootstrapMethodHandleDesc)) {  // if we are changing
+                            // mark the class as transformed
+                            setClassTransformed(true);
+                            bootstrapMethodHandle = new Handle(
+                                    bootstrapMethodHandle.getTag(),
+                                    bootstrapMethodHandleOwner,
+                                    bootstrapMethodHandle.getName(),                                     
+                                    bootstrapMethodHandleDesc,
+                                    bootstrapMethodHandle.isInterface());
+                        }
+                        /** bootstrapMethodArguments can be Integer, Float,Long, Double,String, Type, Handle, ConstantDynamic value. 
+                         * ConstantDynamic can modify content of array at runtime.
+                         */
+                        Object[] copyBootstrapMethodArguments = null;
+                        for(int looper = 0; looper < bootstrapMethodArguments.length; looper++) {
+                            Object argument = bootstrapMethodArguments[looper];
+                            if (argument instanceof Type) {
+                                Type type = (Type) argument;
+                                String oldDesc = type.getDescriptor();
+                                String updatedDesc = replaceJavaXwithJakarta(type.getDescriptor());
+                                if (!oldDesc.equals(updatedDesc)) {
+                                    setClassTransformed(true);
+                                    if (copyBootstrapMethodArguments == null) {
+                                        copyBootstrapMethodArguments = cloneBootstrapMethodArguments(bootstrapMethodArguments);
+                                    }
+                                    copyBootstrapMethodArguments[looper] = Type.getMethodType(updatedDesc);
+                                }
+                            } else if (argument instanceof Handle) {  // reference to a field or method
+                                Handle handle = (Handle)argument;
+                                String origDesc = handle.getDesc();
+                                String updatedDesc = replaceJavaXwithJakarta(handle.getDesc());
+                                if (!origDesc.equals(updatedDesc)) {  // if we are changing
+                                    // mark the class as transformed
+                                    setClassTransformed(true);
+                                    handle = new Handle(
+                                            handle.getTag(),
+                                            handle.getOwner(),
+                                            handle.getName(),
+                                            updatedDesc,
+                                            handle.isInterface());
+                                    if (copyBootstrapMethodArguments == null) {
+                                        copyBootstrapMethodArguments = cloneBootstrapMethodArguments(bootstrapMethodArguments);
+                                    }
+                                    copyBootstrapMethodArguments[looper] = handle;
+                                }
+                                
+                            } else if( argument instanceof ConstantDynamic) {
+                                // TODO: runtime handling of ConstantDynamic)
+                                ConstantDynamic constantDynamic = (ConstantDynamic)argument;
+                                throw new IllegalStateException("ConstantDynamic is not handled " +constantDynamic.toString());
+                            }
+                        }
+                        if (copyBootstrapMethodArguments != null) {
+                            bootstrapMethodArguments = copyBootstrapMethodArguments;
+                        }
+                        super.visitInvokeDynamicInsn(name, desc, bootstrapMethodHandle, bootstrapMethodArguments);
+                    }
+
+                    private Object[] cloneBootstrapMethodArguments(Object[] bootstrapMethodArguments) {
+                        // copy all current values after allocation
+                        Object [] copyBootstrapMethodArguments = new Object[bootstrapMethodArguments.length];
+                        for (int copyIdx = 0; copyIdx < bootstrapMethodArguments.length;copyIdx++) {
+                            copyBootstrapMethodArguments[copyIdx] = bootstrapMethodArguments[copyIdx];
+                        }
+                        return copyBootstrapMethodArguments;
                     }
 
                     @Override
