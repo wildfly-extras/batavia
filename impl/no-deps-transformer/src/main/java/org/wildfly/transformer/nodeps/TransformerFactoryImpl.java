@@ -15,54 +15,17 @@
  */
 package org.wildfly.transformer.nodeps;
 
-import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.TransformerBuilder;
 import org.wildfly.transformer.TransformerFactory;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public final class TransformerFactoryImpl extends TransformerFactory {
 
-    private static final String DEFAULT_CONFIG = "default.mapping";
-    static final char DOT = '.';
-    static final char SEP = '/';
-
     @Override
-    public Transformer newTransformer() throws IOException {
-        InputStream is = null;
-        try {
-            is = TransformerImpl.class.getResourceAsStream(SEP + DEFAULT_CONFIG);
-            final Properties defaultMapping = new Properties();
-            defaultMapping.load(is);
-            String to;
-            final TransformerImpl.Builder builder = TransformerImpl.newInstance();
-            for (String from : defaultMapping.stringPropertyNames()) {
-                to = defaultMapping.getProperty(from);
-                if (to.indexOf(DOT) != -1 || from.indexOf(DOT) != -1) {
-                    throw new UnsupportedOperationException("Wrong " + DEFAULT_CONFIG + " configuration format");
-                }
-                builder.addMapping(from, to);
-                if (from.indexOf(SEP) != -1 || to.indexOf(SEP) != -1) {
-                    builder.addMapping(from.replace(SEP, DOT), to.replace(SEP, DOT));
-                }
-            }
-            return builder.build();
-        } finally {
-            safeClose(is);
-        }
-    }
-
-    private static void safeClose(final Closeable c) {
-        try {
-            if (c != null) c.close();
-        } catch (final Throwable t) {
-            // ignored
-        }
+    public TransformerBuilder newTransformer() {
+        return new TransformerBuilderImpl();
     }
 
 }
