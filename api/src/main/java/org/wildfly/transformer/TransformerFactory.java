@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Class file transformer factory.
+ * Resources transformer factory.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
@@ -57,11 +57,10 @@ public abstract class TransformerFactory {
     }
 
     /**
-     * Creates new transformer instance.
+     * Creates new transformer builder instance.
      *
-     * @return new transformer instance
-     * @throws IOException if transformer initialization process fails to read configuration files
+     * @return new transformer builder instance
      */
-    public abstract Transformer newTransformer() throws IOException;
+    public abstract TransformerBuilder newTransformer();
 
 }
