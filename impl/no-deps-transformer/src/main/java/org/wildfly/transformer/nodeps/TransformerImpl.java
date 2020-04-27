@@ -18,11 +18,10 @@ package org.wildfly.transformer.nodeps;
 import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
 import static org.wildfly.transformer.nodeps.ClassFileUtils.*;
-import static org.wildfly.transformer.nodeps.TransformerFactoryImpl.*;
+import static org.wildfly.transformer.nodeps.TransformerBuilderImpl.*;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,7 @@ import org.wildfly.transformer.Transformer;
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
-public final class TransformerImpl implements Transformer {
+final class TransformerImpl implements Transformer {
 
     private static final String CLASS_SUFFIX = ".class";
     private static final String XML_SUFFIX = ".xml";
@@ -83,7 +82,7 @@ public final class TransformerImpl implements Transformer {
      *
      * @param mapping packages mapping
      */
-    private TransformerImpl(final Map<String, String> mapping) {
+    TransformerImpl(final Map<String, String> mapping) {
         this.mappingWithSeps = mapping;
         this.mappingWithDots =  new HashMap<>(mapping.size());
         this.mappingFrom = new byte[mapping.size() + 1][];
@@ -321,80 +320,6 @@ public final class TransformerImpl implements Transformer {
         }
 
         return retVal;
-    }
-
-    /**
-     * Returns new builder for configuring the class file transformer.
-     *
-     * @return class file transformer builder
-     */
-    public static TransformerImpl.Builder newInstance() {
-        return new Builder();
-    }
-
-    /**
-     * Class file transformer builder. Instances of this class are thread safe.
-     *
-     * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
-     */
-    public static final class Builder {
-        private static final int MAX_MAPPINGS = 0xFFFF;
-        private final Thread thread;
-        private final Map<String, String> mapping;
-        private boolean built;
-
-        private Builder() {
-            thread = currentThread();
-            mapping = new HashMap<>();
-        }
-
-        /**
-         * Adds mapping configuration.
-         *
-         * @param from string to be removed
-         * @param to string to be replaced with
-         * @return this builder instance
-         * @throws ConcurrentModificationException if builder instance is used by multiple threads
-         * @throws IllegalStateException if {@link #build()} have been already called or if mappings count surpasses value <code>65535</code>
-         * @throws IllegalArgumentException if any method parameter is <code>null</code>
-         * or if any method parameter equals to <code>empty string</code>
-         * or if method parameters define identity mapping
-         * or if <code>from</code> parameter is substring of previously registered mapping
-         * of if previously registered mapping is substring of <code>from</code> parameter
-         */
-        public Builder addMapping(final String from, final String to) {
-            // preconditions
-            if (thread != currentThread()) throw new ConcurrentModificationException();
-            if (built) throw new IllegalStateException();
-            if (from == null || to == null) throw new IllegalArgumentException();
-            if (from.length() == 0 || to.length() == 0) throw new IllegalArgumentException();
-            if (from.equals(to)) throw new IllegalArgumentException();
-            // implementation
-            for (String key : mapping.keySet()) {
-                if (key.contains(from) || from.contains(key)) throw new IllegalArgumentException();
-            }
-            if (mapping.size() > MAX_MAPPINGS) throw new IllegalStateException();
-            mapping.put(from, to);
-            return this;
-        }
-
-        /**
-         * Creates new configured class file transformer.
-         *
-         * @return new configured class file transformer
-         * @throws ConcurrentModificationException if builder instance is used by multiple threads
-         * @throws IllegalStateException if {@link #build()} have been already called
-         * or {@link #addMapping(String, String)} wasn't called before
-         */
-        public Transformer build() {
-            // preconditions
-            if (thread != currentThread()) throw new ConcurrentModificationException();
-            if (built) throw new IllegalStateException();
-            if (mapping.size() == 0) throw new IllegalStateException();
-            // implementation
-            built = true;
-            return new TransformerImpl(mapping);
-        }
     }
 
 }
