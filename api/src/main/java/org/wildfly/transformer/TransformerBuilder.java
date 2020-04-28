@@ -69,9 +69,10 @@ public abstract class TransformerBuilder {
      */
     public final TransformerBuilder setPackagesMapping(final String config) throws IOException {
         // preconditions
-        if (thread != currentThread()) throw new ConcurrentModificationException();
-        if (built || mappingFile != null) throw new IllegalStateException();
-        if (config == null || "".equals(config)) throw new IllegalArgumentException();
+        if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
+        if (built) throw new IllegalStateException("Builder instance have been already closed");
+        if (mappingFile != null) throw new IllegalStateException("This method can be called only once");
+        if (config == null || "".equals(config)) throw new IllegalArgumentException("Parameter cannot be neither null nor empty string");
         // implementation
         final File userConfig = new File(config);
         if (userConfig.exists() && userConfig.isFile()) {
@@ -79,12 +80,12 @@ public abstract class TransformerBuilder {
         } else {
             mappingFile = TransformerBuilder.class.getResourceAsStream(config);
         }
-        if (mappingFile == null) throw new IllegalArgumentException();
+        if (mappingFile == null) throw new IllegalArgumentException("Couldn't find specified config file neither on file system nor on class path");
         return this;
     }
 
     /**
-     * Creates new resource transformer.
+     * Creates new resource transformer and closes this builder instance.
      *
      * @return new resource transformer
      * @throws ConcurrentModificationException if this builder instance is used by multiple threads
@@ -97,8 +98,8 @@ public abstract class TransformerBuilder {
      */
     public final Transformer build() throws IOException {
         // preconditions
-        if (thread != currentThread()) throw new ConcurrentModificationException();
-        if (built) throw new IllegalStateException();
+        if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
+        if (built) throw new IllegalStateException("Builder instance have been already closed");
         // implementation
         built = true;
         try {
@@ -111,11 +112,11 @@ public abstract class TransformerBuilder {
             for (String from : packagesMapping.stringPropertyNames()) {
                 to = packagesMapping.getProperty(from);
                 if (to.indexOf(DOT) != -1 || from.indexOf(DOT) != -1) {
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException("Packages mapping config file must be property file in path separator format only");
                 }
                 addMapping(from, to);
             }
-            if (mappingWithSeps.size() == 0) throw new IllegalStateException();
+            if (mappingWithSeps.size() == 0) throw new IllegalStateException("No mapping was defined in packages mapping config file");
         } finally {
             safeClose(mappingFile);
         }
@@ -133,13 +134,14 @@ public abstract class TransformerBuilder {
     public abstract Transformer newInstance(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots);
 
     private void addMapping(final String from, final String to) {
-        if (from == null || to == null) throw new IllegalArgumentException();
-        if (from.length() == 0 || to.length() == 0) throw new IllegalArgumentException();
-        if (from.equals(to)) throw new IllegalArgumentException();
+        if (from == null || to == null) throw new IllegalArgumentException("Package definition cannot be null");
+        if (from.length() == 0 || to.length() == 0) throw new IllegalArgumentException("Package definition cannot be empty string");
+        if (from.equals(to)) throw new IllegalArgumentException("Identity package mapping detected");
         for (String key : mappingWithSeps.keySet()) {
-            if (key.contains(from) || from.contains(key)) throw new IllegalArgumentException();
+            if (key.contains(from)) throw new IllegalArgumentException("Package " + from + " is substring of package " + key);
+            if (from.contains(key)) throw new IllegalArgumentException("Package " + key + " is substring of package " + from);
         }
-        if (mappingWithSeps.size() > MAX_MAPPINGS) throw new IllegalStateException();
+        if (mappingWithSeps.size() > MAX_MAPPINGS) throw new IllegalStateException("Packages mapping count exceeded value " + MAX_MAPPINGS);
         mappingWithSeps.put(from, to);
         mappingWithDots.put(from.replace(SEP, DOT), to.replace(SEP, DOT));
     }
