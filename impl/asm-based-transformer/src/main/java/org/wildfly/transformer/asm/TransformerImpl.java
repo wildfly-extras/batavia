@@ -15,6 +15,8 @@
  */
 package org.wildfly.transformer.asm;
 
+import static org.wildfly.transformer.asm.TransformerBuilderImpl.*;
+
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +48,7 @@ import org.wildfly.transformer.Transformer;
  * @author Scott Marlow
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class TransformerImpl implements Transformer {
+final class TransformerImpl implements Transformer {
 
     private static final String CLASS_SUFFIX = ".class";
     private static final int CLASS_SUFFIX_LENGTH = CLASS_SUFFIX.length(); 
@@ -56,6 +58,21 @@ public class TransformerImpl implements Transformer {
     private boolean classTransformed;
     private boolean alreadyTransformed;
     private String changeClassName;
+    final Map<String, String> mappingWithSeps;
+    final Map<String, String> mappingWithDots;
+
+    /**
+     * Constructor.
+     *
+     * @param mapping packages mapping
+     */
+    TransformerImpl(final Map<String, String> mapping) {
+        this.mappingWithSeps = mapping;
+        this.mappingWithDots =  new HashMap<>(mapping.size());
+        for (Map.Entry<String, String> mappingEntry : mapping.entrySet()) {
+            mappingWithDots.put(mappingEntry.getKey().replace(SEP, DOT), mappingEntry.getValue().replace(SEP, DOT));
+        }
+    }
 
     /**
      * {@inheritDoc}
@@ -307,6 +324,7 @@ public class TransformerImpl implements Transformer {
         return classWriter.toByteArray();
     }
 
+    /*
     private static Map <String, String> mappingWithSeps = new HashMap<>();
     private static Map <String, String> mappingWithDots = new HashMap<>();
     static {
@@ -381,8 +399,10 @@ public class TransformerImpl implements Transformer {
         mappingWithDots.put("javax.websocket", "jakarta.websocket");
         mappingWithDots.put("javax.ws.rs", "jakarta.ws.rs");
     };
+
+     */
     
-    private static String replaceJavaXwithJakarta(String desc) {
+    private String replaceJavaXwithJakarta(String desc) {
         StringBuilder stringBuilder = new StringBuilder(desc);
         for(Map.Entry<String, String> possibleReplacement: mappingWithSeps.entrySet()) {
             String key = possibleReplacement.getKey();
@@ -481,7 +501,7 @@ public class TransformerImpl implements Transformer {
         }
     }
 
-    private static class MyAnnotationVisitor extends AnnotationVisitor {
+    private class MyAnnotationVisitor extends AnnotationVisitor {
         public MyAnnotationVisitor(AnnotationVisitor av) {
             super(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, av);
         }
