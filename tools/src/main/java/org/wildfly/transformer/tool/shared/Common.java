@@ -30,6 +30,7 @@ import java.util.jar.JarOutputStream;
 
 import org.wildfly.transformer.Transformer;
 import org.wildfly.transformer.Transformer.Resource;
+import org.wildfly.transformer.TransformerBuilder;
 import org.wildfly.transformer.TransformerFactory;
 
 /**
@@ -43,12 +44,11 @@ public abstract class Common {
     protected static final String CLASS_FILE_EXT = ".class";
     protected static final String JAR_FILE_EXT = ".jar";
 
-    protected static void transformClassFile(final File inClassFile, final File outClassFile) throws IOException {
+    protected static void transformClassFile(final File inClassFile, final File outClassFile, final String packagesMappingFile) throws IOException {
         if (inClassFile.length() > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
-
-        final Transformer t = TransformerFactory.getInstance().newTransformer().build();
+        final Transformer t = newTransformer(packagesMappingFile);
         byte[] clazz = new byte[(int)inClassFile.length()];
         readBytes(new FileInputStream(inClassFile), clazz, true);
         final Resource newResource = t.transform(new Resource(inClassFile.getName(), clazz));
@@ -56,39 +56,8 @@ public abstract class Common {
         writeBytes(new FileOutputStream(outClassFile), clazz, true);
     }
 
-    protected static void safeClose(final Closeable c) {
-        try {
-            if (c != null) c.close();
-        } catch (final Throwable t) {
-            // ignored
-        }
-    }
-
-    protected static void readBytes(final InputStream is, final byte[] clazz, final boolean closeStream) throws IOException {
-        try {
-            int offset = 0;
-            while (offset < clazz.length) {
-                offset += is.read(clazz, offset, clazz.length - offset);
-            }
-        } finally {
-            if (closeStream) {
-                safeClose(is);
-            }
-        }
-    }
-
-    protected static void writeBytes(final OutputStream os, final byte[] clazz, final boolean closeStream) throws IOException {
-        try {
-            os.write(clazz);
-        } finally {
-            if (closeStream) {
-                safeClose(os);
-            }
-        }
-    }
-
-    protected static void transformJarFile(final File inJarFile, final File outJarFile) throws IOException {
-        final Transformer t = TransformerFactory.getInstance().newTransformer().build();
+    protected static void transformJarFile(final File inJarFile, final File outJarFile, final String packagesMappingFile) throws IOException {
+        final Transformer t = newTransformer(packagesMappingFile);
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
@@ -134,4 +103,44 @@ public abstract class Common {
             safeClose(jarOutputStream);
         }
     }
+
+    private static void safeClose(final Closeable c) {
+        try {
+            if (c != null) c.close();
+        } catch (final Throwable t) {
+            // ignored
+        }
+    }
+
+    private static void readBytes(final InputStream is, final byte[] clazz, final boolean closeStream) throws IOException {
+        try {
+            int offset = 0;
+            while (offset < clazz.length) {
+                offset += is.read(clazz, offset, clazz.length - offset);
+            }
+        } finally {
+            if (closeStream) {
+                safeClose(is);
+            }
+        }
+    }
+
+    private static void writeBytes(final OutputStream os, final byte[] clazz, final boolean closeStream) throws IOException {
+        try {
+            os.write(clazz);
+        } finally {
+            if (closeStream) {
+                safeClose(os);
+            }
+        }
+    }
+
+    private static Transformer newTransformer(final String packagesMappingFile) throws IOException {
+        final TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
+        if (packagesMappingFile != null) {
+            builder.setPackagesMapping(packagesMappingFile);
+        }
+        return builder.build();
+    }
+
 }

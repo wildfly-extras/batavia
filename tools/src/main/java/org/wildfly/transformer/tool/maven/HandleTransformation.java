@@ -33,22 +33,22 @@ final class HandleTransformation extends Common {
      * 
      * @param folder represents a filesystem path that contains files/subfolders to be transformed.
      */
-    static void transformDirectory(final File folder) throws IOException {
+    static void transformDirectory(final File folder, final String packagesMappingFile) throws IOException {
         final File[] files = folder.listFiles();
         if (files == null) return;
 
         for (File sourceFile : files) {
             if (sourceFile.isDirectory()) {
-                transformDirectory(sourceFile);
+                transformDirectory(sourceFile, packagesMappingFile);
             } else if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-                transformClassFile(sourceFile, sourceFile);
+                transformClassFile(sourceFile, sourceFile, packagesMappingFile);
             } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-                transformJarFile(sourceFile, sourceFile);
+                transformJarFile(sourceFile, sourceFile, packagesMappingFile);
             }
         }
     }
 
-    static void transformFile(final File sourceFile, final File targetFile) throws IOException {
+    static void transformFile(final File sourceFile, final File targetFile, final String packagesMappingFile) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
         }
@@ -60,9 +60,9 @@ final class HandleTransformation extends Common {
         }
 
         if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-            transformClassFile(sourceFile, targetFile);
+            transformClassFile(sourceFile, targetFile, packagesMappingFile);
         } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            transformJarFile(sourceFile, targetFile);
+            transformJarFile(sourceFile, targetFile, packagesMappingFile);
         }
     }
 
