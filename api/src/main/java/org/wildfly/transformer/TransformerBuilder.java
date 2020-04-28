@@ -28,7 +28,7 @@ import java.util.Properties;
 import static java.lang.Thread.currentThread;
 
 /**
- * Resource transformer builder. Instances of this class are thread safe.
+ * Resource transformer builder instance can be manipulated only by thread that created it.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */

@@ -19,7 +19,7 @@ import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
 /**
- * Resource transformer.
+ * Resource transformer can be used concurrently by multiple threads as instances of this class are thread safe.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
