@@ -48,7 +48,7 @@ public abstract class Common {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
 
-        final Transformer t = TransformerFactory.getInstance().newTransformer();
+        final Transformer t = TransformerFactory.getInstance().newTransformer().build();
         byte[] clazz = new byte[(int)inClassFile.length()];
         readBytes(new FileInputStream(inClassFile), clazz, true);
         final Resource newResource = t.transform(new Resource(inClassFile.getName(), clazz));
@@ -88,7 +88,7 @@ public abstract class Common {
     }
 
     protected static void transformJarFile(final File inJarFile, final File outJarFile) throws IOException {
-        final Transformer t = TransformerFactory.getInstance().newTransformer();
+        final Transformer t = TransformerFactory.getInstance().newTransformer().build();
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
