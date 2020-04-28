@@ -15,7 +15,7 @@
  */
 package org.wildfly.transformer.asm;
 
-import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.TransformerBuilder;
 import org.wildfly.transformer.TransformerFactory;
 
 /**
@@ -24,8 +24,8 @@ import org.wildfly.transformer.TransformerFactory;
 public final class TransformerFactoryImpl extends TransformerFactory {
 
     @Override
-    public Transformer newTransformer() {
-        return new TransformerImpl();
+    public TransformerBuilder newTransformer() {
+        return new TransformerBuilderImpl();
     }
 
 }
