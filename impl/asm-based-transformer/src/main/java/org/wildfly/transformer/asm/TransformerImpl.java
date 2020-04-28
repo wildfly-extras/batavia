@@ -316,7 +316,18 @@ final class TransformerImpl implements Transformer {
 
     private String replaceJavaXwithJakarta(String desc) {
         StringBuilder stringBuilder = new StringBuilder(desc);
-        for(Map.Entry<String, String> possibleReplacement: mappingWithSeps.entrySet()) {
+        for (Map.Entry<String, String> possibleReplacement: mappingWithSeps.entrySet()) {
+            String key = possibleReplacement.getKey();
+            String value = possibleReplacement.getValue();
+            int pos = stringBuilder.indexOf(key, 0);
+            while(pos > -1) {
+                int length = pos  + key.length();
+                int next = pos + value.length();
+                stringBuilder.replace(pos, length, value);
+                pos = stringBuilder.indexOf(key, next);
+            }
+        }
+        for (Map.Entry<String, String> possibleReplacement: mappingWithDots.entrySet()) {
             String key = possibleReplacement.getKey();
             String value = possibleReplacement.getValue();
             int pos = stringBuilder.indexOf(key, 0);

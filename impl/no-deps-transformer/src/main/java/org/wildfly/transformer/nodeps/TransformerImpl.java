@@ -84,11 +84,20 @@ final class TransformerImpl implements Transformer {
     TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
         this.mappingWithSeps = mappingWithSeps;
         this.mappingWithDots =  mappingWithDots;
-        this.mappingFrom = new byte[mappingWithSeps.size() + 1][];
-        this.mappingTo = new byte[mappingWithSeps.size() + 1][];
+        final int arraySize = mappingWithSeps.size() + mappingWithDots.size() + 1;
+        this.mappingFrom = new byte[arraySize][];
+        this.mappingTo = new byte[arraySize][];
         int i = 1;
         int minimum = Integer.MAX_VALUE;
         for (Map.Entry<String, String> mappingEntry : mappingWithSeps.entrySet()) {
+            mappingFrom[i] = stringToUtf8(mappingEntry.getKey());
+            mappingTo[i] = stringToUtf8(mappingEntry.getValue());
+            if (minimum > mappingFrom[i].length) {
+                minimum = mappingFrom[i].length;
+            }
+            i++;
+        }
+        for (Map.Entry<String, String> mappingEntry : mappingWithDots.entrySet()) {
             mappingFrom[i] = stringToUtf8(mappingEntry.getKey());
             mappingTo[i] = stringToUtf8(mappingEntry.getValue());
             if (minimum > mappingFrom[i].length) {
