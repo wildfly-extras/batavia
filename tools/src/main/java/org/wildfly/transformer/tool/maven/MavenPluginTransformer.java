@@ -64,6 +64,9 @@ public class MavenPluginTransformer extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
     private String outputFolder;
 
+    @Parameter(defaultValue = "${packages.mapping.config}", readonly = true)
+    private String packagesMapping;
+
     @Parameter(defaultValue = "${project.compileClasspathElements}", required = true, readonly = true)
     private List<String> compileClasspathElements;
 
@@ -83,7 +86,7 @@ public class MavenPluginTransformer extends AbstractMojo {
         if (inputFile != null && outputFile != null) {
             try {
                 System.out.println("transforming specific input " + inputFile.getName() + " into " + outputFile.getName());
-                HandleTransformation.transformFile(inputFile, outputFile);
+                HandleTransformation.transformFile(inputFile, outputFile, packagesMapping);
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage(), e);
             }
@@ -100,7 +103,7 @@ public class MavenPluginTransformer extends AbstractMojo {
                 // transform files in output folder
                 try {
                     System.out.println("transforming contents of folder " + outputDirectory);
-                    HandleTransformation.transformDirectory(outputDirectory);
+                    HandleTransformation.transformDirectory(outputDirectory, packagesMapping);
                 } catch (IOException e) {
                     throw new MojoExecutionException(e.getMessage(), e);
                 }
@@ -121,7 +124,7 @@ public class MavenPluginTransformer extends AbstractMojo {
             outputFile = new File(inputFile.getName() + ".temp");
             System.out.println("transforming " + inputFile.getName() + " into " + outputFile.getName());
             try {
-                HandleTransformation.transformFile(inputFile, outputFile);
+                HandleTransformation.transformFile(inputFile, outputFile, packagesMapping);
                 if (outputFile.exists()) {
                     System.out.println("transformer generated output file " + outputFile.getName() + " " +
                             " outputFile size = " + outputFile.length());
@@ -161,6 +164,7 @@ public class MavenPluginTransformer extends AbstractMojo {
         System.out.println("inputJar =  " + inputFile);
         System.out.println("outputJar =  " + outputFile);
         System.out.println("targetName = " + targetName);
+        System.out.println("packagesMapping = " + packagesMapping);
     }
 
 }
