@@ -18,11 +18,9 @@ package org.wildfly.transformer.nodeps;
 import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
 import static org.wildfly.transformer.nodeps.ClassFileUtils.*;
-import static org.wildfly.transformer.nodeps.TransformerBuilderImpl.*;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,17 +78,17 @@ final class TransformerImpl implements Transformer {
     /**
      * Constructor.
      *
-     * @param mapping packages mapping
+     * @param mappingWithSeps packages mapping in path separator form
+     * @param mappingWithDots packages mapping in dot form
      */
-    TransformerImpl(final Map<String, String> mapping) {
-        this.mappingWithSeps = mapping;
-        this.mappingWithDots =  new HashMap<>(mapping.size());
-        this.mappingFrom = new byte[mapping.size() + 1][];
-        this.mappingTo = new byte[mapping.size() + 1][];
+    TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
+        this.mappingWithSeps = mappingWithSeps;
+        this.mappingWithDots =  mappingWithDots;
+        this.mappingFrom = new byte[mappingWithSeps.size() + 1][];
+        this.mappingTo = new byte[mappingWithSeps.size() + 1][];
         int i = 1;
         int minimum = Integer.MAX_VALUE;
-        for (Map.Entry<String, String> mappingEntry : mapping.entrySet()) {
-            mappingWithDots.put(mappingEntry.getKey().replace(SEP, DOT), mappingEntry.getValue().replace(SEP, DOT));
+        for (Map.Entry<String, String> mappingEntry : mappingWithSeps.entrySet()) {
             mappingFrom[i] = stringToUtf8(mappingEntry.getKey());
             mappingTo[i] = stringToUtf8(mappingEntry.getValue());
             if (minimum > mappingFrom[i].length) {

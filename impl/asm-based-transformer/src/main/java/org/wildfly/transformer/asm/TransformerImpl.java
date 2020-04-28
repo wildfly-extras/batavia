@@ -15,10 +15,8 @@
  */
 package org.wildfly.transformer.asm;
 
-import static org.wildfly.transformer.asm.TransformerBuilderImpl.*;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,17 +59,9 @@ final class TransformerImpl implements Transformer {
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
 
-    /**
-     * Constructor.
-     *
-     * @param mapping packages mapping
-     */
-    TransformerImpl(final Map<String, String> mapping) {
-        this.mappingWithSeps = mapping;
-        this.mappingWithDots =  new HashMap<>(mapping.size());
-        for (Map.Entry<String, String> mappingEntry : mapping.entrySet()) {
-            mappingWithDots.put(mappingEntry.getKey().replace(SEP, DOT), mappingEntry.getValue().replace(SEP, DOT));
-        }
+    TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
+        this.mappingWithSeps = mappingWithSeps;
+        this.mappingWithDots = mappingWithDots;
     }
 
     /**
