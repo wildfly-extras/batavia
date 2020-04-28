@@ -32,15 +32,10 @@ public abstract class TransformerFactory {
     static {
          final Iterator<TransformerFactory> i = load(TransformerFactory.class, TransformerFactory.class.getClassLoader()).iterator();
          TransformerFactory factoryImpl = null;
-         boolean factoryImplAvailable = false;
          while (i.hasNext()) {
-             factoryImpl = i.next();
-             if (factoryImpl != null) {
-                 factoryImplAvailable = true;
-                 break;
-             }
+             if ((factoryImpl = i.next()) != null) break;
          }
-         if (factoryImplAvailable) {
+         if (factoryImpl != null) {
              INSTANCE = factoryImpl;
          } else {
              throw new IllegalStateException("Service provider for " + TransformerFactory.class.getName() + " not found");
