@@ -92,7 +92,7 @@ public abstract class TransformerBuilder {
      * @throws IllegalStateException if this method have been already called or
      * there was no packages mapping defined in configuration file or
      * if packages mapping count in configuration file surpasses value <code>65535</code>
-     * @throws IllegalArgumentException if configuration file has invalid format or it contains identity package mapping
+     * @throws IllegalArgumentException if configuration file has invalid format or it contains identical package mapping
      * or if some package defined in one package mapping is a substring of package in another package mapping
      * @throws IOException if configuration reading process failed with unexpected I/O error
      */
@@ -136,7 +136,7 @@ public abstract class TransformerBuilder {
     private void addMapping(final String from, final String to) {
         if (from == null || to == null) throw new IllegalArgumentException("Package definition cannot be null");
         if (from.length() == 0 || to.length() == 0) throw new IllegalArgumentException("Package definition cannot be empty string");
-        if (from.equals(to)) throw new IllegalArgumentException("Identity package mapping detected");
+        if (from.equals(to)) throw new IllegalArgumentException("Identical package mapping detected: " + from + " -> " + to);
         for (String key : mappingWithSeps.keySet()) {
             if (key.contains(from)) throw new IllegalArgumentException("Package " + from + " is substring of package " + key);
             if (from.contains(key)) throw new IllegalArgumentException("Package " + key + " is substring of package " + from);
