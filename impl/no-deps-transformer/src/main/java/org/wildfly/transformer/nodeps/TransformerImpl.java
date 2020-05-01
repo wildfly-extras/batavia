@@ -39,11 +39,6 @@ final class TransformerImpl implements Transformer {
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
 
     /**
-     * Patch info mask.
-     */
-    private static final int PATCH_MASK = 0xFFFF;
-
-    /**
      * Debugging support.
      */
     private static final boolean DEBUG = Boolean.getBoolean(TransformerImpl.class.getName() + ".debug");
@@ -167,7 +162,7 @@ final class TransformerImpl implements Transformer {
                     if (patches == null) {
                         patches = new ArrayList<>(countUtf8Items(clazz, constantPool));
                     }
-                    diffInBytes += patch[0] & PATCH_MASK;
+                    diffInBytes += patch[1];
                     patches.add(patch);
                 }
             }
@@ -220,7 +215,7 @@ final class TransformerImpl implements Transformer {
 
         for (int[] patch : patches) {
             if (patch == null) break;
-            oldUtf8ItemBytesSectionOffset = oldClassConstantPool[patch[0] >>> 16] + 3;
+            oldUtf8ItemBytesSectionOffset = oldClassConstantPool[patch[0]] + 3;
             // copy till start of next utf8 item bytes section
             length = oldUtf8ItemBytesSectionOffset - oldClassOffset;
             arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
@@ -232,12 +227,12 @@ final class TransformerImpl implements Transformer {
             }
             // patch utf8 item length
             oldUtf8ItemLength = readUnsignedShort(oldClass, oldClassOffset - 2);
-            writeUnsignedShort(newClass, newClassOffset - 2, oldUtf8ItemLength + (patch[0] & PATCH_MASK));
+            writeUnsignedShort(newClass, newClassOffset - 2, oldUtf8ItemLength + patch[1]);
             // apply utf8 info bytes section patches
-            for (int i = 1; i < patch.length; i++) {
-                mappingIndex = patch[i] >>> 16;
+            for (int i = 2; i < patch.length;) {
+                mappingIndex = patch[i++];
                 if (mappingIndex == 0) break;
-                patchOffset = patch[i] & PATCH_MASK;
+                patchOffset = patch[i++];
                 // copy till begin of patch
                 length = patchOffset - (oldClassOffset - oldUtf8ItemBytesSectionOffset);
                 arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
@@ -255,7 +250,7 @@ final class TransformerImpl implements Transformer {
             newClassOffset += length;
             if (DEBUG) {
                 synchronized (System.out) {
-                    System.out.println("[" + currentThread() + "] Patching UTF-8 constant pool item on position: " + (patch[0] >>> 16));
+                    System.out.println("[" + currentThread() + "] Patching UTF-8 constant pool item on position: " + patch[0]);
                     debugOldUtf8ItemLength = readUnsignedShort(oldClass, debugOldUtf8ItemOffset - 2);
                     System.out.println("[" + currentThread() + "] old value: " + utf8ToString(oldClass, debugOldUtf8ItemOffset, debugOldUtf8ItemOffset + debugOldUtf8ItemLength));
                     debugNewUtf8ItemLength = readUnsignedShort(newClass, debugNewUtf8ItemOffset - 2);
@@ -275,22 +270,22 @@ final class TransformerImpl implements Transformer {
      * Every <code>patch info</code> has the following format:
      * <p>
      *     <pre>
-     *        +-----------+
-     *        | integer 0 | first two bytes hold <code>Constant_Utf8_info</code> index inside <code>constant pool</code> table
-     *        |           | second two bytes hold <code>CONSTANT_Utf8_info</code> structure difference in bytes after applied patches
-     *        +-----------+
-     *        | integer 1 | first two bytes hold non-zero mapping index in mapping tables of 1-st applied patch
-     *        |           | last two bytes hold index of 1-st patch start inside bytes section of original <code>CONSTANT_Utf8_info</code> structure
-     *        +-----------+
-     *        | integer 2 | first two bytes hold non-zero mapping index in mapping tables of 2-nd applied patch
-     *        |           | last two bytes hold index of 2-nd patch start inside bytes section of original <code>CONSTANT_Utf8_info</code> structure
-     *        +-----------+
-     *        |    ...    | etc
-     *        |           |
-     *        +-----------+
-     *        | integer N | first two bytes of mapping index equal to zero indicate premature <code>patch info</code> structure end
-     *        |           |
-     *        +-----------+
+     *        +-------------+ PATCH INFO STRUCTURE HEADER
+     *        | integer 0   | holds <code>Constant_Utf8_info</code> index inside class's <code>constant pool</code> table
+     *        | integer 1   | holds <code>CONSTANT_Utf8_info</code> structure difference in bytes after applied patches
+     *        +-------------+ PATCH INFO STRUCTURE DATA
+     *        | integer 2   | holds non-zero mapping index in mapping tables of 1-st applied patch
+     *        | integer 3   | holds index of 1-st patch start inside bytes section of original <code>CONSTANT_Utf8_info</code> structure
+     *        +-------------+
+     *        | integer 4   | holds non-zero mapping index in mapping tables of 2-nd applied patch
+     *        | integer 5   | holds index of 2-nd patch start inside bytes section of original <code>CONSTANT_Utf8_info</code> structure
+     *        +-------------+
+     *        |    ...      | etc
+     *        |             |
+     *        +-------------+
+     *        | integer N-1 | mapping index equal to zero indicates premature <code>patch info</code> structure end
+     *        | integer N   |
+     *        +-------------+
      *     </pre>
      * </p>
      *
@@ -302,7 +297,7 @@ final class TransformerImpl implements Transformer {
     private int[] getPatch(final byte[] clazz, final int offset, final int limit, final int poolIndex) {
         int[] retVal = null;
         int mappingIndex;
-        int patchIndex = 1;
+        int patchIndex = 2;
 
         for (int i = offset; i <= limit - minimum; i++) {
             for (int j = 1; j < mappingFrom.length; j++) {
@@ -316,11 +311,12 @@ final class TransformerImpl implements Transformer {
                 }
                 if (mappingIndex != 0) {
                     if (retVal == null) {
-                        retVal = new int[((limit - i) / minimum) + 1];
-                        retVal[0] = poolIndex << 16;
+                        retVal = new int[(((limit - i) / minimum) + 1) * 2];
+                        retVal[0] = poolIndex;
                     }
-                    retVal[patchIndex++] = mappingIndex << 16 | (i - offset);
-                    retVal[0] += mappingTo[mappingIndex].length - mappingFrom[mappingIndex].length;
+                    retVal[patchIndex++] = mappingIndex;
+                    retVal[patchIndex++] = i - offset;
+                    retVal[1] += mappingTo[mappingIndex].length - mappingFrom[mappingIndex].length;
                     i += mappingFrom[j].length;
                 }
             }
