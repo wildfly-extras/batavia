@@ -282,14 +282,16 @@ System.out.println("type.getSort() == Type.ARRAY " + internalName + " elementTyp
                                     // replace descriptor (if necessary)
                                     // inspect and potentially replace all arguments of this method type (see Type.getArgumentTypes())
                                     // inspect and potentially replace its return type (see Type.getReturnType())
-                                    System.out.println("type.getSort() == Type.METHOD type.getArgumentTypes() = " + type.getArgumentTypes());
+                                    // ElytronDefinition.class - type.getSort() == Type.METHOD type.getArgumentTypes() = [Lorg.objectweb.asm.Type;@72ea2f77
+                                    System.out.println("Handle Method: type.getSort() == Type.METHOD type.getArgumentTypes() = " + type.getArgumentTypes() );
                                     for (Type argTypes : type.getArgumentTypes()) {
-                                        System.out.println("type.getSort() == Type.METHOD " +
+                                        System.out.println("argumentTypes: " +
                                                 " argTypes.getInternalName() = " + argTypes.getInternalName() +
-                                                " argTypes.getDescriptor() = " + argTypes.getDescriptor() 
+                                                " argTypes.getDescriptor() = " + argTypes.getDescriptor());
+                                        System.out.println("getReturnType() " + argTypes.getReturnType());
                                         //      +  " argTypes.getReturnType().getDescriptor() = " + argTypes.getReturnType().getDescriptor() +
                                         //      +  " argTypes.getReturnType().getInternalName() = " + argTypes.getReturnType().getInternalName()
-                                        );
+                                        
                                     }
                                 } else { // (type.getSort() == Type.OBJECT)
                                     // replace descriptor (if necessary)
