@@ -264,10 +264,41 @@ final class TransformerImpl implements Transformer {
                         Object[] copyBootstrapMethodArguments = null;
                         for(int looper = 0; looper < bootstrapMethodArguments.length; looper++) {
                             Object argument = bootstrapMethodArguments[looper];
-                            if (argument instanceof Type) {
+                            if (argument instanceof Type && ((
+                                    ((Type)argument)).getSort() == Type.ARRAY ||
+                                    ((Type)argument).getSort() == Type.OBJECT ||
+                                    ((Type)argument).getSort() == Type.METHOD)) {
                                 Type type = (Type) argument;
                                 String oldDesc = type.getDescriptor();
                                 String updatedDesc = replaceJavaXwithJakarta(type.getDescriptor());
+                                if (type.getSort() == Type.ARRAY) {
+                                    //    replace descriptor (if necessary)
+                                    //    inspect and potentially replace all elements of this array type (see Type.getElementType())
+                                    //    inspect and potentially replace its internal name // see Type.getInternalName()
+                                    Type elementType = type.getElementType();
+                                    String internalName = type.getInternalName();
+System.out.println("type.getSort() == Type.ARRAY " + internalName + " elementType = " + elementType);
+                                } else if(type.getSort() == Type.METHOD) {
+                                    // replace descriptor (if necessary)
+                                    // inspect and potentially replace all arguments of this method type (see Type.getArgumentTypes())
+                                    // inspect and potentially replace its return type (see Type.getReturnType())
+                                    System.out.println("type.getSort() == Type.METHOD type.getArgumentTypes() = " + type.getArgumentTypes());
+                                    for (Type argTypes : type.getArgumentTypes()) {
+                                        System.out.println("type.getSort() == Type.METHOD " +
+                                                " argTypes.getInternalName() = " + argTypes.getInternalName() +
+                                                " argTypes.getDescriptor() = " + argTypes.getDescriptor() 
+                                        //      +  " argTypes.getReturnType().getDescriptor() = " + argTypes.getReturnType().getDescriptor() +
+                                        //      +  " argTypes.getReturnType().getInternalName() = " + argTypes.getReturnType().getInternalName()
+                                        );
+                                    }
+                                } else { // (type.getSort() == Type.OBJECT)
+                                    // replace descriptor (if necessary)
+                                    // inspect and potentially replace its internal name // see Type.getInternalName()
+                                    // inspect and potentially replace its name // see Type.getClassName()
+                                    System.out.println("type.getSort() == Type.OBJECT Type.getInternalName() = " + type.getInternalName() 
+                                            + " type.getClassName() = " + type.getClassName());
+                                }
+                                
                                 if (!oldDesc.equals(updatedDesc)) {
                                     setClassTransformed(true);
                                     if (copyBootstrapMethodArguments == null) {
@@ -275,16 +306,19 @@ final class TransformerImpl implements Transformer {
                                     }
                                     copyBootstrapMethodArguments[looper] = Type.getMethodType(updatedDesc);
                                 }
+                                
                             } else if (argument instanceof Handle) {  // reference to a field or method
                                 Handle handle = (Handle)argument;
                                 String origDesc = handle.getDesc();
                                 String updatedDesc = replaceJavaXwithJakarta(handle.getDesc());
-                                if (!origDesc.equals(updatedDesc)) {  // if we are changing
+                                String origOwner = handle.getOwner();
+                                String updatedOwner = replaceJavaXwithJakarta(handle.getOwner()); 
+                                if (!origDesc.equals(updatedDesc) || !origOwner.equals(updatedOwner)) {  // if we are changing
                                     // mark the class as transformed
                                     setClassTransformed(true);
                                     handle = new Handle(
                                             handle.getTag(),
-                                            handle.getOwner(),
+                                            updatedOwner,
                                             handle.getName(),
                                             updatedDesc,
                                             handle.isInterface());
