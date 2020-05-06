@@ -260,6 +260,8 @@ final class TransformerImpl implements Transformer {
                         }
                         /** bootstrapMethodArguments can be Integer, Float,Long, Double,String, Type, Handle, ConstantDynamic value. 
                          * ConstantDynamic can modify content of array at runtime.
+                         * 
+                         * TODO: https://github.com/wildfly-extras/batavia/issues/28 support for handling bootstrapMethodArguments that are ARRAY, OBJECT, METHOD  
                          */
                         Object[] copyBootstrapMethodArguments = null;
                         for(int looper = 0; looper < bootstrapMethodArguments.length; looper++) {
@@ -277,27 +279,24 @@ final class TransformerImpl implements Transformer {
                                     //    inspect and potentially replace its internal name // see Type.getInternalName()
                                     Type elementType = type.getElementType();
                                     String internalName = type.getInternalName();
-System.out.println("type.getSort() == Type.ARRAY " + internalName + " elementType = " + elementType);
+                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.ARRAY " + internalName + " elementType = " + elementType);
                                 } else if(type.getSort() == Type.METHOD) {
                                     // replace descriptor (if necessary)
                                     // inspect and potentially replace all arguments of this method type (see Type.getArgumentTypes())
                                     // inspect and potentially replace its return type (see Type.getReturnType())
                                     // ElytronDefinition.class - type.getSort() == Type.METHOD type.getArgumentTypes() = [Lorg.objectweb.asm.Type;@72ea2f77
-                                    System.out.println("Handle Method: type.getSort() == Type.METHOD type.getArgumentTypes() = " + type.getArgumentTypes() );
+                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.METHOD " + type.getArgumentTypes() );
                                     for (Type argTypes : type.getArgumentTypes()) {
                                         System.out.println("argumentTypes: " +
                                                 " argTypes.getInternalName() = " + argTypes.getInternalName() +
                                                 " argTypes.getDescriptor() = " + argTypes.getDescriptor());
-                                        System.out.println("getReturnType() " + argTypes.getReturnType());
-                                        //      +  " argTypes.getReturnType().getDescriptor() = " + argTypes.getReturnType().getDescriptor() +
-                                        //      +  " argTypes.getReturnType().getInternalName() = " + argTypes.getReturnType().getInternalName()
-                                        
+                                        System.out.println("argTypes to string = " + argTypes.toString());
                                     }
                                 } else { // (type.getSort() == Type.OBJECT)
                                     // replace descriptor (if necessary)
                                     // inspect and potentially replace its internal name // see Type.getInternalName()
                                     // inspect and potentially replace its name // see Type.getClassName()
-                                    System.out.println("type.getSort() == Type.OBJECT Type.getInternalName() = " + type.getInternalName() 
+                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.OBJECT " + type.getInternalName() 
                                             + " type.getClassName() = " + type.getClassName());
                                 }
                                 
