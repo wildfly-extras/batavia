@@ -52,9 +52,11 @@ final class TransformerImpl implements Transformer {
     private static final int CLASS_SUFFIX_LENGTH = CLASS_SUFFIX.length(); 
     private static final String XML_SUFFIX = ".xml";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
+    private static final String CLASS_FOR_NAME_PRIVATE_METHOD = "org_wildfly_tranformer_asm_classForName_String__boolean_ClassLoader";
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private boolean alreadyTransformed;
+    private boolean alreadyAddedClassForNameMethod;
     private String changeClassName;
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
@@ -230,9 +232,34 @@ final class TransformerImpl implements Transformer {
                             // mark the class as transformed
                             setClassTransformed(true);
                         }
+                        
+                        // handle Class.forName(String name, boolean initialize,ClassLoader loader)
+                        // invokestatic  #17 Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+                        if (opcode == Opcodes.INVOKESTATIC &&
+                            owner.equals("java/lang/Class") && name.equals("forName")) {
+                            // handle both current forms ("(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;") 
+                            // generate package name for generating copy of ReflectionModel class in application 
+                            owner = transformerClassPackageName();
+                            System.out.println("changing call to Class#" + name + " to instead call " + owner + "#" + name);
+                            setClassTransformed(true);
+                        }
+                        
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
-
+                    
+                    private String transformerClassPackageName() {
+                        String transformedPackage = classReader.getClassName();
+                        // determine the package name
+                        int index = transformedPackage.lastIndexOf('/');
+                        if (index > -1) {
+                            transformedPackage = transformedPackage.substring(0,index);
+                        }
+                        else {
+                            transformedPackage =  "";
+                        }
+                        return transformedPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD; 
+                    }
+                    
                     @Override
                     public void visitLdcInsn(final Object value) {
                         if (value instanceof Type) {
@@ -357,10 +384,6 @@ final class TransformerImpl implements Transformer {
         this.classTransformed = classTransformed;
     }
 
-    public void setAlreadyTransformed(boolean alreadyTransformed) {
-        this.alreadyTransformed = alreadyTransformed;
-    }
-
     public boolean transformationsMade() {
         return !alreadyTransformed && classTransformed;
     }
@@ -460,4 +483,5 @@ final class TransformerImpl implements Transformer {
         }
 
     }
+    
 }
