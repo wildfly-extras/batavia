@@ -15,10 +15,10 @@
  */
 package org.wildfly.transformer.tool.maven;
 
+import static org.wildfly.transformer.tool.api.ToolUtils.*;
+
 import java.io.File;
 import java.io.IOException;
-
-import org.wildfly.transformer.tool.shared.Common;
 
 /**
  * HandleTransformation
@@ -26,7 +26,7 @@ import org.wildfly.transformer.tool.shared.Common;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  * @author Scott Marlow
  */
-final class HandleTransformation extends Common {
+final class HandleTransformation {
 
     /**
      * Transform the files contained under the folder path specified.
