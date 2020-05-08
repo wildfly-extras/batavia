@@ -33,8 +33,8 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>asm-based-transformer</module>
-    <module>no-deps-transformer</module>
+    <module>asm</module>
+    <module>nod</module>
   </modules>
 
 </project>
