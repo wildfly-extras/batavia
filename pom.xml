@@ -103,6 +103,11 @@
         <artifactId>no-dependencies-transformer</artifactId>
         <version>${project.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.wildfly-extras</groupId>
+        <artifactId>transformer-tools-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.tool.shared;
+package org.wildfly.transformer.tool.api;
 
 import java.io.Closeable;
 import java.io.File;
@@ -39,12 +39,16 @@ import org.wildfly.transformer.TransformerFactory;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  * @author Scott Marlow
  */
-public abstract class Common {
+public final class ToolUtils {
 
-    protected static final String CLASS_FILE_EXT = ".class";
-    protected static final String JAR_FILE_EXT = ".jar";
+    private ToolUtils() {
+        // forbidden instantiation
+    }
 
-    protected static void transformClassFile(final File inClassFile, final File outClassFile, final String packagesMappingFile) throws IOException {
+    public static final String CLASS_FILE_EXT = ".class";
+    public static final String JAR_FILE_EXT = ".jar";
+
+    public static void transformClassFile(final File inClassFile, final File outClassFile, final String packagesMappingFile) throws IOException {
         if (inClassFile.length() > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
@@ -56,7 +60,7 @@ public abstract class Common {
         writeBytes(new FileOutputStream(outClassFile), clazz, true);
     }
 
-    protected static void transformJarFile(final File inJarFile, final File outJarFile, final String packagesMappingFile) throws IOException {
+    public static void transformJarFile(final File inJarFile, final File outJarFile, final String packagesMappingFile) throws IOException {
         final Transformer t = newTransformer(packagesMappingFile);
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;

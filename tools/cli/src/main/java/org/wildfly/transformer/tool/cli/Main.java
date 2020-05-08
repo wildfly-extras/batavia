@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.tool.cmdline;
+package org.wildfly.transformer.tool.cli;
+
+import static org.wildfly.transformer.tool.api.ToolUtils.*;
 
 import java.io.File;
 import java.io.IOException;
-
-import org.wildfly.transformer.tool.shared.Common;
 
 /**
  * Command line tool for transforming class files or jar files.
@@ -26,7 +26,7 @@ import org.wildfly.transformer.tool.shared.Common;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  * @author Scott Marlow 
  */
-public final class Main extends Common {
+public final class Main {
 
     private static final String PACKAGES_MAPPING_OPTION = "--packages-mapping=";
 
