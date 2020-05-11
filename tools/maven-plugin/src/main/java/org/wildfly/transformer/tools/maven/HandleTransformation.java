@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.tool.maven;
+package org.wildfly.transformer.tools.maven;
 
 import java.io.File;
 import java.io.IOException;
 
-import org.wildfly.transformer.tool.shared.Common;
+import org.wildfly.transformer.tools.api.Common;
 
 /**
  * HandleTransformation
