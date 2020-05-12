@@ -240,13 +240,19 @@ final class TransformerImpl implements Transformer {
                             // handle both current forms ("(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;") 
                             // generate package name for generating copy of ReflectionModel class in application 
                             owner = transformerClassPackageName();
+                            generateReflectionHandlingModelCode(owner);
                             System.out.println("changing call to Class#" + name + " to instead call " + owner + "#" + name);
                             setClassTransformed(true);
                         }
                         
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
-                    
+
+                    private void generateReflectionHandlingModelCode(String owner) {
+                        System.out.println("TODO: check if we generated reflection handling code in package " + owner + " yet, if not, generate it." +
+                                "We can track the (TransformerImpl level) Set of packages that we have already generated the code for, so we know if we need to generate.");
+                    }
+
                     private String transformerClassPackageName() {
                         String transformedPackage = classReader.getClassName();
                         // determine the package name
