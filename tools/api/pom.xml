@@ -22,19 +22,20 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.wildfly-extras</groupId>
-        <artifactId>batavia-parent</artifactId>
+        <artifactId>transformer-tools-parent</artifactId>
         <version>1.0.0.Alpha1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <name>Transformer Tools Parent</name>
-    <artifactId>transformer-tools-parent</artifactId>
-    <packaging>pom</packaging>
+    <name>Transformer Tools API</name>
+    <artifactId>transformer-tools-api</artifactId>
+    <packaging>jar</packaging>
 
-    <modules>
-        <module>api</module>
-        <module>cli</module>
-        <module>mvn</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.wildfly-extras</groupId>
+            <artifactId>transformer-api</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
