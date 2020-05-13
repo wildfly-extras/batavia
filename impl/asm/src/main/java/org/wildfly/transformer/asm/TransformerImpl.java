@@ -16,8 +16,19 @@
 package org.wildfly.transformer.asm;
 
 
+import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,10 +69,10 @@ final class TransformerImpl implements Transformer {
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private boolean alreadyTransformed;
-    private boolean alreadyAddedClassForNameMethod;
     private String changeClassName;
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
+    final Set<String> generatedReflectionModelHandlingCode = new HashSet<>();
 
     TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
         this.mappingWithSeps = mappingWithSeps;
@@ -250,9 +261,63 @@ final class TransformerImpl implements Transformer {
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
 
-                    private void generateReflectionHandlingModelCode(String owner) {
-                        System.out.println("TODO: check if we generated reflection handling code in package " + owner + " yet, if not, generate it." +
-                                "We can track the (TransformerImpl level) Set of packages that we have already generated the code for, so we know if we need to generate.");
+                    private void generateReflectionHandlingModelCode(String handlingClassName) {
+                        // check if we generated reflection handling code yet, if not, generate it
+                        if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
+                            System.out.println("Generating reflection handling code " + handlingClassName);
+                            try {
+                                // read BataviaReflectionModel bytecode as byte array, then modify it for handling javax => Jakarta transformation rules
+                                InputStream inputStream = ReflectionModel.class.getClassLoader().getResourceAsStream(ReflectionModel.class.getName().replace('.','/')+".class");
+                                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                                int read;
+                                byte[] byteArray = new byte[3000];
+                                while ( (read = inputStream.read(byteArray, 0, byteArray.length) ) != -1) {
+                                    out.write( byteArray, 0, read );
+                                }
+                                out.flush();
+                                byte[] bataviaReflectionModel = out.toByteArray();        
+                                ClassReader bataviaReflectionModelClassReader = new ClassReader(bataviaReflectionModel);
+                                final ClassWriter bataviaReflectionModelClassWriter = new ClassWriter(bataviaReflectionModelClassReader, 0);
+                                bataviaReflectionModelClassReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, bataviaReflectionModelClassWriter) {
+
+                                    @Override
+                                    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                                        return new MethodVisitor(Opcodes.ASM6,
+                                                super.visitMethod(access, name, desc, signature, exceptions)) {
+
+                                            // mv.visitLdcInsn("rules_are_here");
+
+                                            @Override
+                                            public void visitLdcInsn(Object value) {
+                                                if ("rules_are_here".equals(value)) {
+                                                    System.out.println("Injecting transformation rules");
+
+                                                    for (Map.Entry<String, String> possibleReplacement : mappingWithSeps.entrySet()) {
+                                                        super.visitLdcInsn(possibleReplacement.getKey());
+                                                        super.visitLdcInsn(possibleReplacement.getValue());
+                                                        super.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+
+                                                    }
+                                                    for (Map.Entry<String, String> possibleReplacement : mappingWithDots.entrySet()) {
+                                                        super.visitLdcInsn(possibleReplacement.getKey());
+                                                        super.visitLdcInsn(possibleReplacement.getValue());
+                                                        super.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+                                                    }
+                                                }
+                                                super.visitLdcInsn("ignore");
+                                            }
+                                        };
+                                    }
+                                    // mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+
+                                }, 0);
+                                byte[] result = bataviaReflectionModelClassWriter.toByteArray();
+                                Path path = Paths.get("ReflectionModel.class");
+                                Files.write(path, result);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
                     }
 
                     private String transformerClassPackageName() {

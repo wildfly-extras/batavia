@@ -8,18 +8,15 @@ import java.util.Map;
  *
  * @author Scott Marlow
  */
-class BataviaReflectionModel {
+class ReflectionModel {
     
     private static Map<String, String> mapping = new HashMap<>();
-    private static final char DOT = '.';
-    private static final char SEP = '/';
     
     // in the generated code, the mappings need to be based on the specified api/src/main/resources/default.mapping
     static {
         // replace the following call with actual default.mapping rules
-        mapping.put("FIND","REPLACE");
+        mapping.put("rules_are_here","ignore");
         // replace the following call with actual default.mapping rules with '/' changed to '.'
-        mapping.put("FIND".replace(SEP, DOT),"REPLACE".replace(SEP, DOT));
     }
 
     static Class<?> forName(String name) throws ClassNotFoundException {
