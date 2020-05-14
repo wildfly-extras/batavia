@@ -15,15 +15,12 @@
  */
 package org.wildfly.transformer;
 
-import java.lang.instrument.ClassFileTransformer;
-import java.security.ProtectionDomain;
-
 /**
  * Resource transformer can be used concurrently by multiple threads as instances of this class are thread safe.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public interface Transformer extends ClassFileTransformer {
+public interface Transformer {
 
     /**
      * The implementation of this method potentially transforms the supplied resource.
@@ -35,16 +32,6 @@ public interface Transformer extends ClassFileTransformer {
      * @return either new resource with modified name or content, or <code>null</code> if no transformation is performed.
      */
     Resource transform(final Resource r);
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    default byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined,
-                             final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
-        final Resource r = transform(new Resource(className, classfileBuffer));
-        return r != null ? r.getData() : null;
-    }
 
     /**
      * Resource data.
