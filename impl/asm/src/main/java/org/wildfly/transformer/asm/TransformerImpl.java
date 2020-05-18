@@ -22,10 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -261,12 +257,14 @@ final class TransformerImpl implements Transformer {
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
 
-                    private void generateReflectionHandlingModelCode(String handlingClassName) {
+                    private void generateReflectionHandlingModelCode(String handlingClassPackage) {
                         // check if we generated reflection handling code yet, if not, generate it
+                        String handlingClassName = handlingClassPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD;
                         if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
                             System.out.println("Generating reflection handling code " + handlingClassName);
                             try {
                                 // read BataviaReflectionModel bytecode as byte array, then modify it for handling javax => Jakarta transformation rules
+                                
                                 InputStream inputStream = ReflectionModel.class.getClassLoader().getResourceAsStream(ReflectionModel.class.getName().replace('.','/')+".class");
                                 ByteArrayOutputStream out = new ByteArrayOutputStream();
                                 int read;
@@ -279,6 +277,13 @@ final class TransformerImpl implements Transformer {
                                 ClassReader bataviaReflectionModelClassReader = new ClassReader(bataviaReflectionModel);
                                 final ClassWriter bataviaReflectionModelClassWriter = new ClassWriter(bataviaReflectionModelClassReader, 0);
                                 bataviaReflectionModelClassReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, bataviaReflectionModelClassWriter) {
+                                    @Override
+                                    public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                                        System.out.println("change ReflectionModel class name from " + name + " to " + handlingClassName + 
+                                                " keep superName = " + superName);                                        
+                                        name = handlingClassName; 
+                                        super.visit(version, access, name, signature, superName, interfaces);                                        
+                                    }
 
                                     @Override
                                     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -313,8 +318,10 @@ final class TransformerImpl implements Transformer {
 
                                 }, 0);
                                 byte[] result = bataviaReflectionModelClassWriter.toByteArray();
-                                Path path = Paths.get("ReflectionModel.class");
-                                Files.write(path, result);
+                                // saveCustomReflectionModel(result, handlingClassName);
+                                // keep track of generated classes
+                                generatedReflectionModelHandlingCode.add(handlingClassName);
+                                
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }
@@ -329,9 +336,9 @@ final class TransformerImpl implements Transformer {
                             transformedPackage = transformedPackage.substring(0,index);
                         }
                         else {
-                            transformedPackage =  "";
+                            throw new RuntimeException("Could not determine package name for " + classReader.getClassName());
                         }
-                        return transformedPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD; 
+                        return transformedPackage; 
                     }
                     
                     @Override
