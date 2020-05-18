@@ -36,6 +36,11 @@
             <groupId>org.wildfly-extras</groupId>
             <artifactId>transformer-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

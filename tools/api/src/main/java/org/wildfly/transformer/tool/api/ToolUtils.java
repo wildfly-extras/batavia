@@ -22,8 +22,10 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Calendar;
 import java.util.Enumeration;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -106,6 +108,27 @@ public final class ToolUtils {
             safeClose(jar);
             safeClose(jarOutputStream);
         }
+    }
+
+    /**
+     * Transform JBoss module.xml and artifacts.
+     *
+     * @param modulesDir Modules root directory containing modules to transform.
+     * @param modulesTargetDir Target modules root directory containing
+     * transformed modules. This directory must exist.
+     * @param modulesMappingFile Custom module names mapping. If null, default
+     * mapping is applied.
+     * @param transformArtifacts Provide true to transform discovered artifacts.
+     * @param packagesMappingFile Custom java packages mapping. If null, default
+     * mapping is applied.
+     * @return A map of transformed modules.
+     * @throws IOException
+     */
+    public static Map<String, TransformedModule> transformModules(Path modulesDir, Path modulesTargetDir, String modulesMappingFile,
+            boolean transformArtifacts,
+            String packagesMappingFile) throws IOException {
+        return JBossModulesTransformer.transform(modulesDir, modulesTargetDir, modulesMappingFile,
+                transformArtifacts, packagesMappingFile);
     }
 
     private static void safeClose(final Closeable c) {
