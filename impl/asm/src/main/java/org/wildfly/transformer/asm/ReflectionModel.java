@@ -14,9 +14,8 @@ class ReflectionModel {
     
     // in the generated code, the mappings need to be based on the specified api/src/main/resources/default.mapping
     static {
-        // replace the following call with actual default.mapping rules
-        mapping.put("rules_are_here","ignore");
-        // replace the following call with actual default.mapping rules with '/' changed to '.'
+        // replace the following call with actual default.mapping rules (including both dot + slash separator
+        mapping.get("rules_are_here");
     }
 
     static Class<?> forName(String name) throws ClassNotFoundException {

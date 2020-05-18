@@ -285,11 +285,13 @@ final class TransformerImpl implements Transformer {
                                         return new MethodVisitor(Opcodes.ASM6,
                                                 super.visitMethod(access, name, desc, signature, exceptions)) {
 
-                                            // mv.visitLdcInsn("rules_are_here");
-
+                                            // trigger on mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
                                             @Override
-                                            public void visitLdcInsn(Object value) {
-                                                if ("rules_are_here".equals(value)) {
+                                            public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+                                                // first generate the call to invoke mapping.get("rules_are_here") call
+                                                super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);   
+                                                // then if its actually the call to mapping.get, add additional code for adding all transformation rules to mapping
+                                                if ("java/util/Map".equals(owner) && "get".equals(name)) {  
                                                     System.out.println("Injecting transformation rules");
 
                                                     for (Map.Entry<String, String> possibleReplacement : mappingWithSeps.entrySet()) {
@@ -304,7 +306,6 @@ final class TransformerImpl implements Transformer {
                                                         super.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
                                                     }
                                                 }
-                                                super.visitLdcInsn("ignore");
                                             }
                                         };
                                     }
