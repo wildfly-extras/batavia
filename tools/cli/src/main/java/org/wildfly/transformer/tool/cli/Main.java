@@ -86,9 +86,9 @@ public final class Main {
 
     private static void printUsage() {
         System.err.println();
-        System.err.println("Usage: " + Main.class.getName() + " [-option] source.class target.class");
+        System.err.println("Usage: " + Main.class.getName() + " [-option] source.class target.dir");
         System.err.println("       (to transform a class)");
-        System.err.println("   or  " + Main.class.getName() + " [-option] source.jar target.jar");
+        System.err.println("   or  " + Main.class.getName() + " [-option] source.jar target.dir");
         System.err.println("       (to transform a jar file)");
         System.err.println("");
         System.err.println("Where options include:");
