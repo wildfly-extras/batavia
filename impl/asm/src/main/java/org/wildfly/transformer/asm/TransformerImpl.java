@@ -63,6 +63,13 @@ final class TransformerImpl implements Transformer {
     private static final String XML_SUFFIX = ".xml";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
     private static final String CLASS_FOR_NAME_PRIVATE_METHOD = "org_wildfly_tranformer_asm_classForName_String__boolean_ClassLoader";
+    private static final String CLASS_OBJECT = "java/lang/Class";
+    private static final String FORNAME_METHOD = "forName";
+    private static final String MAP_OBJECT = "java/util/Map";
+    private static final String MAP_PUT_METHOD = "put";
+    private static final String MAP_PUT_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+    private static final String MAP_GET_METHOD = "get";
+    
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private boolean alreadyTransformed;
@@ -70,6 +77,8 @@ final class TransformerImpl implements Transformer {
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
     final Set<String> generatedReflectionModelHandlingCode = new HashSet<>();
+    private byte[] generatedReflectionModelHandlingByteCode;
+    private String generatedReflectionModelHandlingClassName;
 
     TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
         this.mappingWithSeps = mappingWithSeps;
@@ -111,7 +120,6 @@ final class TransformerImpl implements Transformer {
 
             @Override
             public void visitAttribute(Attribute attribute) {
-                System.out.println("fieldvisitor:getAttributeCount type = " + attribute);
                 super.visitAttribute(attribute);
             }
 
@@ -242,11 +250,11 @@ final class TransformerImpl implements Transformer {
                             // mark the class as transformed
                             setClassTransformed(true);
                         }
-                        
+
                         // handle Class.forName(String name, boolean initialize,ClassLoader loader)
                         // invokestatic  #17 Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
                         if (opcode == Opcodes.INVOKESTATIC &&
-                            owner.equals("java/lang/Class") && name.equals("forName")) {
+                            owner.equals(CLASS_OBJECT) && name.equals(FORNAME_METHOD)) {
                             // handle both current forms ("(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;") 
                             // generate package name for generating copy of ReflectionModel class in application 
                             owner = transformerClassPackageName();
@@ -297,29 +305,28 @@ final class TransformerImpl implements Transformer {
                                                 // first generate the call to invoke mapping.get("rules_are_here") call
                                                 super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);   
                                                 // then if its actually the call to mapping.get, add additional code for adding all transformation rules to mapping
-                                                if ("java/util/Map".equals(owner) && "get".equals(name)) {  
+                                                if (MAP_OBJECT.equals(owner) && MAP_GET_METHOD.equals(name)) {  
                                                     System.out.println("Injecting transformation rules");
 
                                                     for (Map.Entry<String, String> possibleReplacement : mappingWithSeps.entrySet()) {
                                                         super.visitLdcInsn(possibleReplacement.getKey());
                                                         super.visitLdcInsn(possibleReplacement.getValue());
-                                                        super.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
-
+                                                        super.visitMethodInsn(INVOKEINTERFACE, MAP_OBJECT, MAP_PUT_METHOD, 
+                                                                MAP_PUT_METHOD_DESC, true);
                                                     }
                                                     for (Map.Entry<String, String> possibleReplacement : mappingWithDots.entrySet()) {
                                                         super.visitLdcInsn(possibleReplacement.getKey());
                                                         super.visitLdcInsn(possibleReplacement.getValue());
-                                                        super.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+                                                        super.visitMethodInsn(INVOKEINTERFACE, MAP_OBJECT, MAP_PUT_METHOD, 
+                                                                MAP_PUT_METHOD_DESC, true);
                                                     }
                                                 }
                                             }
                                         };
                                     }
-                                    // mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
-
                                 }, 0);
                                 byte[] result = bataviaReflectionModelClassWriter.toByteArray();
-                                // saveCustomReflectionModel(result, handlingClassName);
+                                saveCustomReflectionModel(handlingClassName +  CLASS_SUFFIX,result);
                                 // keep track of generated classes
                                 generatedReflectionModelHandlingCode.add(handlingClassName);
                                 
@@ -538,6 +545,11 @@ final class TransformerImpl implements Transformer {
         return classWriter.toByteArray();
     }
 
+    private void saveCustomReflectionModel(String handlingClassName, byte[] result) {
+        generatedReflectionModelHandlingClassName = handlingClassName;
+        generatedReflectionModelHandlingByteCode = result;
+    }
+
     private String replaceJavaXwithJakarta(String desc) {
         StringBuilder stringBuilder = new StringBuilder(desc);
         for (Map.Entry<String, String> possibleReplacement: mappingWithSeps.entrySet()) {
@@ -587,6 +599,8 @@ final class TransformerImpl implements Transformer {
 
     public void clearTransformationState() {
         alreadyTransformed = classTransformed = false;
+        generatedReflectionModelHandlingByteCode = null;
+        generatedReflectionModelHandlingClassName = null;
     }
 
     @Override
@@ -614,7 +628,8 @@ final class TransformerImpl implements Transformer {
         } else if (!newResourceName.equals(oldResourceName)) {
             retVal = new Resource(newResourceName, r.getData());
         }
-        return retVal == null ? EMPTY_ARRAY : new Resource[] {retVal};
+        return retVal == null ? EMPTY_ARRAY : generatedReflectionModelHandlingByteCode == null ? new Resource[] {retVal} :
+                new Resource[] {retVal, new Resource(generatedReflectionModelHandlingClassName, generatedReflectionModelHandlingByteCode)};
     }
 
     private void setNewClassName(String newClassName) {
