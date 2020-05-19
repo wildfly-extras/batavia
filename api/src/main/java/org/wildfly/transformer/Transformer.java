@@ -25,13 +25,18 @@ public interface Transformer {
     /**
      * The implementation of this method potentially transforms the supplied resource.
      * The resource can be a regular class file or configuration text file or some other kind of files.
-     * If the implementing method detects no transformation is needed it must return <code>null</code>.
-     * Otherwise it must create a new <code>resource</code> containing transformed resource name or content.
+     * If the implementing method detects no transformation is needed it must return <code>empty array</code>.
+     * Otherwise it must create a new <code>resource</code> (or new resources) containing transformed resource
+     * (potentially additional created resources). If return value contains more than one resource then
+     * resource at array index <code>zero</code> is always considered to be replacement of original resource
+     * and other resources (since array index of <code>1</code> including) represent additional resources
+     * created dynamically that must be added to target environment (e.g. jar archive or defining class loader).
      *
      * @param r the resource to be transformed. The buffer returned by {@link Resource#getData()} method must not be modified.
-     * @return either new resource with modified name or content, or <code>null</code> if no transformation is performed.
+     * @return either <code>empty array</code> if no transformation is performed or
+     * a new resource (or multiple resources) representing transformed resource (or potentially additional created resources)
      */
-    Resource transform(final Resource r);
+    Resource[] transform(final Resource r);
 
     /**
      * Resource data.
