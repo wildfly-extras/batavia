@@ -41,14 +41,14 @@ final class HandleTransformation {
             if (sourceFile.isDirectory()) {
                 transformDirectory(sourceFile, packagesMappingFile);
             } else if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-                transformClassFile(sourceFile, sourceFile, packagesMappingFile);
+                transformClassFile(sourceFile, sourceFile.getParentFile(), packagesMappingFile);
             } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-                transformJarFile(sourceFile, sourceFile, packagesMappingFile);
+                transformJarFile(sourceFile, sourceFile.getParentFile(), packagesMappingFile);
             }
         }
     }
 
-    static void transformFile(final File sourceFile, final File targetFile, final String packagesMappingFile) throws IOException {
+    static void transformFile(final File sourceFile, final File targetDir, final String packagesMappingFile) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
         }
@@ -60,9 +60,9 @@ final class HandleTransformation {
         }
 
         if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-            transformClassFile(sourceFile, targetFile, packagesMappingFile);
+            transformClassFile(sourceFile, targetDir, packagesMappingFile);
         } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            transformJarFile(sourceFile, targetFile, packagesMappingFile);
+            transformJarFile(sourceFile, targetDir, packagesMappingFile);
         }
     }
 

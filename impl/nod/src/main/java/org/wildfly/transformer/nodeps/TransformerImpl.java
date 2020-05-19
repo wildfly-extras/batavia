@@ -34,6 +34,7 @@ import org.wildfly.transformer.Transformer;
  */
 final class TransformerImpl implements Transformer {
 
+    private static final Resource[] EMPTY_ARRAY = new Resource[0];
     private static final String CLASS_SUFFIX = ".class";
     private static final String XML_SUFFIX = ".xml";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
@@ -104,23 +105,24 @@ final class TransformerImpl implements Transformer {
     }
 
     @Override
-    public Resource transform(final Resource r) {
+    public Resource[] transform(final Resource r) {
+        Resource retVal = null;
         String oldResourceName = r.getName();
         String newResourceName = replacePackageName(oldResourceName, false);
         if (oldResourceName.endsWith(CLASS_SUFFIX)) {
             final byte[] newClazz = transform(r.getData());
-            if (newClazz != null) return new Resource(newResourceName, newClazz);
+            if (newClazz != null) retVal = new Resource(newResourceName, newClazz);
         } else if (oldResourceName.endsWith(XML_SUFFIX)) {
-            return new Resource(newResourceName, xmlFile(r.getData()));
+            retVal = new Resource(newResourceName, xmlFile(r.getData()));
         } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
             newResourceName = replacePackageName(oldResourceName, true);
             if (!newResourceName.equals(oldResourceName)) {
-                return new Resource(newResourceName, r.getData());
+                retVal = new Resource(newResourceName, r.getData());
             }
         } else if (!newResourceName.equals(oldResourceName)) {
-            return new Resource(newResourceName, r.getData());
+            retVal = new Resource(newResourceName, r.getData());
         }
-        return null; // returning null means nothing was transformed (indicates copy original content)
+        return retVal == null ? EMPTY_ARRAY : new Resource[] {retVal};
     }
 
     private String replacePackageName(final String resourceName, final boolean dotFormat) {

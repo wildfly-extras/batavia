@@ -50,30 +50,38 @@ public final class ToolUtils {
     public static final String CLASS_FILE_EXT = ".class";
     public static final String JAR_FILE_EXT = ".jar";
 
-    public static void transformClassFile(final File inClassFile, final File outClassFile, final String packagesMappingFile) throws IOException {
+    public static void transformClassFile(final File inClassFile, final File targetDir, final String packagesMappingFile) throws IOException {
         if (inClassFile.length() > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
+        if (!targetDir.mkdirs()) throw new IOException("Couldn't create directory: " + targetDir.getAbsolutePath());
         final Transformer t = newTransformer(packagesMappingFile);
         byte[] clazz = new byte[(int)inClassFile.length()];
         readBytes(new FileInputStream(inClassFile), clazz, true);
-        final Resource newResource = t.transform(new Resource(inClassFile.getName(), clazz));
-        clazz = newResource != null ? newResource.getData() : clazz;
-        writeBytes(new FileOutputStream(outClassFile), clazz, true);
+        final Resource origResource = new Resource(inClassFile.getName(), clazz);
+        final Resource[] newResources = t.transform(origResource);
+        if (newResources.length == 0) {
+            writeBytes(new FileOutputStream(new File(targetDir, origResource.getName())), origResource.getData(), true);
+        } else {
+            for (Resource newResource : newResources) {
+                writeBytes(new FileOutputStream(new File(targetDir, newResource.getName())), newResource.getData(), true);
+            }
+        }
     }
 
-    public static void transformJarFile(final File inJarFile, final File outJarFile, final String packagesMappingFile) throws IOException {
+    public static void transformJarFile(final File inJarFile, final File targetDir, final String packagesMappingFile) throws IOException {
         final Transformer t = newTransformer(packagesMappingFile);
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;
         JarOutputStream jarOutputStream = null;
         JarEntry inJarEntry, outJarEntry;
         byte[] buffer;
-        Resource oldResource, newResource;
+        Resource oldResource;
+        Resource[] newResources;
 
         try {
             jar = new JarFile(inJarFile);
-            jarOutputStream = new JarOutputStream(new FileOutputStream(outJarFile));
+            jarOutputStream = new JarOutputStream(new FileOutputStream(new File(targetDir, inJarFile.getName())));
 
             for (final Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
                 // jar file entry preconditions
@@ -92,17 +100,19 @@ public final class ToolUtils {
                 readBytes(jar.getInputStream(inJarEntry), buffer, true);
                 oldResource = new Resource(inJarEntry.getName(), buffer);
                 // transform resource
-                newResource = t.transform(oldResource);
-                if (newResource == null) {
-                    newResource = oldResource;
+                newResources = t.transform(oldResource);
+                if (newResources.length == 0) {
+                    newResources = new Resource[] {oldResource};
                 }
-                // writing potentially modified jar file entry
-                outJarEntry = new JarEntry(newResource.getName());
-                outJarEntry.setSize(newResource.getData().length);
-                outJarEntry.setTime(calendar.getTimeInMillis());
-                jarOutputStream.putNextEntry(outJarEntry);
-                writeBytes(jarOutputStream, newResource.getData(), false);
-                jarOutputStream.closeEntry();
+                // writing potentially modified jar file entries
+                for (Resource newResource : newResources) {
+                    outJarEntry = new JarEntry(newResource.getName());
+                    outJarEntry.setSize(newResource.getData().length);
+                    outJarEntry.setTime(calendar.getTimeInMillis());
+                    jarOutputStream.putNextEntry(outJarEntry);
+                    writeBytes(jarOutputStream, newResource.getData(), false);
+                    jarOutputStream.closeEntry();
+                }
             }
         } finally {
             safeClose(jar);
@@ -124,9 +134,8 @@ public final class ToolUtils {
      * @return A map of transformed modules.
      * @throws IOException
      */
-    public static Map<String, TransformedModule> transformModules(Path modulesDir, Path modulesTargetDir, String modulesMappingFile,
-            boolean transformArtifacts,
-            String packagesMappingFile) throws IOException {
+    public static Map<String, TransformedModule> transformModules(final Path modulesDir, final Path modulesTargetDir,
+            final String modulesMappingFile, final boolean transformArtifacts, final String packagesMappingFile) throws IOException {
         return JBossModulesTransformer.transform(modulesDir, modulesTargetDir, modulesMappingFile,
                 transformArtifacts, packagesMappingFile);
     }
