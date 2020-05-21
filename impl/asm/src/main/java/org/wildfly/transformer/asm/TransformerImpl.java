@@ -72,7 +72,6 @@ final class TransformerImpl implements Transformer {
     
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
-    private boolean alreadyTransformed;
     private String changeClassName;
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
@@ -603,11 +602,11 @@ final class TransformerImpl implements Transformer {
     }
 
     public boolean transformationsMade() {
-        return !alreadyTransformed && classTransformed;
+        return classTransformed;
     }
 
     public void clearTransformationState() {
-        alreadyTransformed = classTransformed = false;
+        classTransformed = false;
     }
 
     @Override
