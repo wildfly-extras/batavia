@@ -77,8 +77,8 @@ public final class Main {
             return false;
         }
         final File targetFile = new File(args.length == 2 ? args[1] : args[2]);
-        if (targetFile.exists()) {
-            System.err.println("Delete file or directory " + targetFile.getAbsolutePath());
+        if (!targetFile.isDirectory()) {
+            System.err.println("output directory does not exist " + targetFile.getAbsolutePath());
             return false;
         }
         return true;

@@ -16,8 +16,15 @@
 package org.wildfly.transformer.asm;
 
 
+import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,12 +62,20 @@ final class TransformerImpl implements Transformer {
     private static final int CLASS_SUFFIX_LENGTH = CLASS_SUFFIX.length(); 
     private static final String XML_SUFFIX = ".xml";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
+    private static final String CLASS_FOR_NAME_PRIVATE_METHOD = "org_wildfly_tranformer_asm_classForName_String__boolean_ClassLoader";
+    private static final String CLASS_OBJECT = "java/lang/Class";
+    private static final String FORNAME_METHOD = "forName";
+    private static final String MAP_OBJECT = "java/util/Map";
+    private static final String MAP_PUT_METHOD = "put";
+    private static final String MAP_PUT_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+    private static final String MAP_GET_METHOD = "get";
+    
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
-    private boolean alreadyTransformed;
     private String changeClassName;
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
+    final Set<String> generatedReflectionModelHandlingCode = new CopyOnWriteArraySet<>();
 
     TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
         this.mappingWithSeps = mappingWithSeps;
@@ -68,9 +83,16 @@ final class TransformerImpl implements Transformer {
     }
 
     /**
-     * {@inheritDoc}
+     * Transform passed classes and possibly generated one extra class containing bytecode generated from ReflectionModel.
+     * 
+     * @return EMPTY_ARRAY if no modification made, otherwise, Resource[1] for only modified class,
+     * Resource[2] for modified class + extra class containing bytecode generated from ReflectionModel 
      */
-    public byte[] transform(final byte[] clazz) {
+    private Resource[] transform(String newResourceName, final byte[] clazz) {
+        // generatedExtraClass[0] can hold byte[] generatedReflectionModelHandlingByteCode
+        // generatedExtraClass[1] can hold String generatedReflectionModelHandlingClassName
+        final Object[] generatedExtraClass = new Object [2];
+
         ClassReader classReader = new ClassReader(clazz);
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
@@ -102,7 +124,6 @@ final class TransformerImpl implements Transformer {
 
             @Override
             public void visitAttribute(Attribute attribute) {
-                System.out.println("fieldvisitor:getAttributeCount type = " + attribute);
                 super.visitAttribute(attribute);
             }
 
@@ -233,9 +254,113 @@ final class TransformerImpl implements Transformer {
                             // mark the class as transformed
                             setClassTransformed(true);
                         }
+
+                        // handle Class.forName(String name, boolean initialize,ClassLoader loader)
+                        // invokestatic  #17 Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
+                        if (opcode == Opcodes.INVOKESTATIC &&
+                            owner.equals(CLASS_OBJECT) && name.equals(FORNAME_METHOD)) {
+                            // handle both current forms ("(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;") 
+                            // generate package name for generating copy of ReflectionModel class in application 
+                            owner = transformerClassPackageName();
+                            generateReflectionHandlingModelCode(owner);
+                            System.out.println("changing call to Class#" + name + " to instead call " + owner + "#" + name);
+                            setClassTransformed(true);
+                        }
+                        
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
 
+                    private void generateReflectionHandlingModelCode(String handlingClassPackage) {
+                        // check if we generated reflection handling code yet, if not, generate it
+                        String handlingClassName = handlingClassPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD;
+                        if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
+
+                            if (!generatedReflectionModelHandlingCode.add(handlingClassName)) {
+                                // another thread will (or did) generate extra code 
+                                return;
+                            }
+                            
+                            System.out.println("Generating reflection handling code " + handlingClassName);
+                            try {
+                                // read BataviaReflectionModel bytecode as byte array, then modify it for handling javax => Jakarta transformation rules
+                                
+                                InputStream inputStream = ReflectionModel.class.getClassLoader().getResourceAsStream(ReflectionModel.class.getName().replace('.','/')+".class");
+                                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                                int read;
+                                byte[] byteArray = new byte[3000];
+                                while ( (read = inputStream.read(byteArray, 0, byteArray.length) ) != -1) {
+                                    out.write( byteArray, 0, read );
+                                }
+                                out.flush();
+                                byte[] bataviaReflectionModel = out.toByteArray();        
+                                ClassReader bataviaReflectionModelClassReader = new ClassReader(bataviaReflectionModel);
+                                final ClassWriter bataviaReflectionModelClassWriter = new ClassWriter(bataviaReflectionModelClassReader, 0);
+                                bataviaReflectionModelClassReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, bataviaReflectionModelClassWriter) {
+                                    @Override
+                                    public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                                        System.out.println("change ReflectionModel class name from " + name + " to " + handlingClassName + 
+                                                " keep superName = " + superName);                                        
+                                        name = handlingClassName; 
+                                        super.visit(version, access, name, signature, superName, interfaces);                                        
+                                    }
+
+                                    @Override
+                                    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+                                        return new MethodVisitor(Opcodes.ASM6,
+                                                super.visitMethod(access, name, desc, signature, exceptions)) {
+
+                                            // trigger on mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+                                            @Override
+                                            public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+                                                // first generate the call to invoke mapping.get("rules_are_here") call
+                                                super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);   
+                                                // then if its actually the call to mapping.get, add additional code for adding all transformation rules to mapping
+                                                if (MAP_OBJECT.equals(owner) && MAP_GET_METHOD.equals(name)) {  
+                                                    System.out.println("Injecting transformation rules");
+
+                                                    for (Map.Entry<String, String> possibleReplacement : mappingWithSeps.entrySet()) {
+                                                        super.visitLdcInsn(possibleReplacement.getKey());
+                                                        super.visitLdcInsn(possibleReplacement.getValue());
+                                                        super.visitMethodInsn(INVOKEINTERFACE, MAP_OBJECT, MAP_PUT_METHOD, 
+                                                                MAP_PUT_METHOD_DESC, true);
+                                                    }
+                                                    for (Map.Entry<String, String> possibleReplacement : mappingWithDots.entrySet()) {
+                                                        super.visitLdcInsn(possibleReplacement.getKey());
+                                                        super.visitLdcInsn(possibleReplacement.getValue());
+                                                        super.visitMethodInsn(INVOKEINTERFACE, MAP_OBJECT, MAP_PUT_METHOD, 
+                                                                MAP_PUT_METHOD_DESC, true);
+                                                    }
+                                                }
+                                            }
+                                        };
+                                    }
+                                }, 0);
+                                
+                                byte[] result = bataviaReflectionModelClassWriter.toByteArray();
+                                
+                                // generatedExtraClass[0] can hold byte[] generatedReflectionModelHandlingByteCode
+                                // generatedExtraClass[1] can hold String generatedReflectionModelHandlingClassName
+                                generatedExtraClass[0] = result;  
+                                generatedExtraClass[1] = handlingClassName +  CLASS_SUFFIX;
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
+
+                    private String transformerClassPackageName() {
+                        String transformedPackage = classReader.getClassName();
+                        // determine the package name
+                        int index = transformedPackage.lastIndexOf('/');
+                        if (index > -1) {
+                            transformedPackage = transformedPackage.substring(0,index);
+                        }
+                        else {
+                            throw new RuntimeException("Could not determine package name for " + classReader.getClassName());
+                        }
+                        return transformedPackage; 
+                    }
+                    
                     @Override
                     public void visitInvokeDynamicInsn(String name, String desc, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
                         final String descOrig = desc;
@@ -425,11 +550,14 @@ final class TransformerImpl implements Transformer {
             }
         }, 0);
         if (!transformationsMade()) {
-            // no change was made, indicate so by returning null
-            return null;
+            // no change was made, indicate so by returning EMPTY_ARRAY 
+            return EMPTY_ARRAY;
         }
-
-        return classWriter.toByteArray();
+        return generatedExtraClass[0] == null ?
+                new Resource[]{new Resource(newResourceName, classWriter.toByteArray())} :
+                new Resource[]{new Resource(newResourceName, classWriter.toByteArray()),
+                        new Resource((String) generatedExtraClass[1], (byte[]) generatedExtraClass[0])};
+        
     }
 
     private String replaceJavaXwithJakarta(String desc) {
@@ -475,16 +603,12 @@ final class TransformerImpl implements Transformer {
         this.classTransformed = classTransformed;
     }
 
-    public void setAlreadyTransformed(boolean alreadyTransformed) {
-        this.alreadyTransformed = alreadyTransformed;
-    }
-
     public boolean transformationsMade() {
-        return !alreadyTransformed && classTransformed;
+        return classTransformed;
     }
 
     public void clearTransformationState() {
-        alreadyTransformed = classTransformed = false;
+        classTransformed = false;
     }
 
     @Override
@@ -500,8 +624,7 @@ final class TransformerImpl implements Transformer {
                 setNewClassName(newResourceName);
             }
                     
-            final byte[] newClazz = transform(r.getData());
-            if (newClazz != null) retVal = new Resource(newResourceName, newClazz);
+            return transform(newResourceName, r.getData());
         } else if (oldResourceName.endsWith(XML_SUFFIX)) {
             retVal = new Resource(newResourceName, xmlFile(r.getData()));
         } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
@@ -577,4 +700,5 @@ final class TransformerImpl implements Transformer {
         }
 
     }
+    
 }
