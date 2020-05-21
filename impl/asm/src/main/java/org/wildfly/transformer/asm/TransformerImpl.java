@@ -22,9 +22,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -76,9 +76,7 @@ final class TransformerImpl implements Transformer {
     private String changeClassName;
     final Map<String, String> mappingWithSeps;
     final Map<String, String> mappingWithDots;
-    final Set<String> generatedReflectionModelHandlingCode = new HashSet<>();
-    private byte[] generatedReflectionModelHandlingByteCode;
-    private String generatedReflectionModelHandlingClassName;
+    final Set<String> generatedReflectionModelHandlingCode = new CopyOnWriteArraySet<>();
 
     TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
         this.mappingWithSeps = mappingWithSeps;
@@ -86,9 +84,16 @@ final class TransformerImpl implements Transformer {
     }
 
     /**
-     * {@inheritDoc}
+     * Transform passed classes and possibly generated one extra class containing bytecode generated from ReflectionModel.
+     * 
+     * @return EMPTY_ARRAY if no modification made, otherwise, Resource[1] for only modified class,
+     * Resource[2] for modified class + extra class containing bytecode generated from ReflectionModel 
      */
-    public byte[] transform(final byte[] clazz) {
+    private Resource[] transform(String newResourceName, final byte[] clazz) {
+        // generatedExtraClass[0] can hold byte[] generatedReflectionModelHandlingByteCode
+        // generatedExtraClass[1] can hold String generatedReflectionModelHandlingClassName
+        final Object[] generatedExtraClass = new Object [2];
+
         ClassReader classReader = new ClassReader(clazz);
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
@@ -325,8 +330,14 @@ final class TransformerImpl implements Transformer {
                                         };
                                     }
                                 }, 0);
+                                
                                 byte[] result = bataviaReflectionModelClassWriter.toByteArray();
-                                saveCustomReflectionModel(handlingClassName +  CLASS_SUFFIX,result);
+                                
+                                // generatedExtraClass[0] can hold byte[] generatedReflectionModelHandlingByteCode
+                                // generatedExtraClass[1] can hold String generatedReflectionModelHandlingClassName
+                                generatedExtraClass[0] = result;  
+                                generatedExtraClass[1] = handlingClassName +  CLASS_SUFFIX;
+                                
                                 // keep track of generated classes
                                 generatedReflectionModelHandlingCode.add(handlingClassName);
                                 
@@ -538,16 +549,14 @@ final class TransformerImpl implements Transformer {
             }
         }, 0);
         if (!transformationsMade()) {
-            // no change was made, indicate so by returning null
-            return null;
+            // no change was made, indicate so by returning EMPTY_ARRAY 
+            return EMPTY_ARRAY;
         }
-
-        return classWriter.toByteArray();
-    }
-
-    private void saveCustomReflectionModel(String handlingClassName, byte[] result) {
-        generatedReflectionModelHandlingClassName = handlingClassName;
-        generatedReflectionModelHandlingByteCode = result;
+        return generatedExtraClass[0] == null ?
+                new Resource[]{new Resource(newResourceName, classWriter.toByteArray())} :
+                new Resource[]{new Resource(newResourceName, classWriter.toByteArray()),
+                        new Resource((String) generatedExtraClass[1], (byte[]) generatedExtraClass[0])};
+        
     }
 
     private String replaceJavaXwithJakarta(String desc) {
@@ -599,8 +608,6 @@ final class TransformerImpl implements Transformer {
 
     public void clearTransformationState() {
         alreadyTransformed = classTransformed = false;
-        generatedReflectionModelHandlingByteCode = null;
-        generatedReflectionModelHandlingClassName = null;
     }
 
     @Override
@@ -616,8 +623,7 @@ final class TransformerImpl implements Transformer {
                 setNewClassName(newResourceName);
             }
                     
-            final byte[] newClazz = transform(r.getData());
-            if (newClazz != null) retVal = new Resource(newResourceName, newClazz);
+            return transform(newResourceName, r.getData());
         } else if (oldResourceName.endsWith(XML_SUFFIX)) {
             retVal = new Resource(newResourceName, xmlFile(r.getData()));
         } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
@@ -628,8 +634,7 @@ final class TransformerImpl implements Transformer {
         } else if (!newResourceName.equals(oldResourceName)) {
             retVal = new Resource(newResourceName, r.getData());
         }
-        return retVal == null ? EMPTY_ARRAY : generatedReflectionModelHandlingByteCode == null ? new Resource[] {retVal} :
-                new Resource[] {retVal, new Resource(generatedReflectionModelHandlingClassName, generatedReflectionModelHandlingByteCode)};
+        return retVal == null ? EMPTY_ARRAY : new Resource[] {retVal};
     }
 
     private void setNewClassName(String newClassName) {
