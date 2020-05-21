@@ -274,6 +274,18 @@ final class TransformerImpl implements Transformer {
                         // check if we generated reflection handling code yet, if not, generate it
                         String handlingClassName = handlingClassPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD;
                         if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
+                            
+                            // ensure that only one thread actually adds generated ReflectionModel handler for handlingClassPackage
+                            synchronized (generatedReflectionModelHandlingCode) {
+                                if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
+                                    generatedReflectionModelHandlingCode.add(handlingClassName);
+                                }
+                                else {
+                                    // another thread will (or did) generate extra code 
+                                    return;
+                                }
+                            }
+                            
                             System.out.println("Generating reflection handling code " + handlingClassName);
                             try {
                                 // read BataviaReflectionModel bytecode as byte array, then modify it for handling javax => Jakarta transformation rules
@@ -336,10 +348,6 @@ final class TransformerImpl implements Transformer {
                                 // generatedExtraClass[1] can hold String generatedReflectionModelHandlingClassName
                                 generatedExtraClass[0] = result;  
                                 generatedExtraClass[1] = handlingClassName +  CLASS_SUFFIX;
-                                
-                                // keep track of generated classes
-                                generatedReflectionModelHandlingCode.add(handlingClassName);
-                                
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }
