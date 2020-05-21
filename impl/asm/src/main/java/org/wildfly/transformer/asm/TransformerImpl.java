@@ -274,16 +274,10 @@ final class TransformerImpl implements Transformer {
                         // check if we generated reflection handling code yet, if not, generate it
                         String handlingClassName = handlingClassPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD;
                         if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
-                            
-                            // ensure that only one thread actually adds generated ReflectionModel handler for handlingClassPackage
-                            synchronized (generatedReflectionModelHandlingCode) {
-                                if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
-                                    generatedReflectionModelHandlingCode.add(handlingClassName);
-                                }
-                                else {
-                                    // another thread will (or did) generate extra code 
-                                    return;
-                                }
+
+                            if (!generatedReflectionModelHandlingCode.add(handlingClassName)) {
+                                // another thread will (or did) generate extra code 
+                                return;
                             }
                             
                             System.out.println("Generating reflection handling code " + handlingClassName);
