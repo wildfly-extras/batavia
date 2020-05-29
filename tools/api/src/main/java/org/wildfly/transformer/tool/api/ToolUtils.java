@@ -54,7 +54,7 @@ public final class ToolUtils {
         if (inClassFile.length() > Integer.MAX_VALUE) {
             throw new UnsupportedOperationException("File " + inClassFile.getAbsolutePath() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
         }
-        if (!targetDir.mkdirs()) throw new IOException("Couldn't create directory: " + targetDir.getAbsolutePath());
+        if (!targetDir.exists()) throw new IOException("Couldn't find directory: " + targetDir.getAbsolutePath());
         final Transformer t = newTransformer(packagesMappingFile);
         byte[] clazz = new byte[(int)inClassFile.length()];
         readBytes(new FileInputStream(inClassFile), clazz, true);
@@ -70,6 +70,7 @@ public final class ToolUtils {
     }
 
     public static void transformJarFile(final File inJarFile, final File targetDir, final String packagesMappingFile) throws IOException {
+        if (!targetDir.exists()) throw new IOException("Couldn't find directory: " + targetDir.getAbsolutePath());
         final Transformer t = newTransformer(packagesMappingFile);
         final Calendar calendar = Calendar.getInstance();
         JarFile jar = null;
