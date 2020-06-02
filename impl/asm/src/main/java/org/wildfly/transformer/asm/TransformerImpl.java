@@ -411,7 +411,7 @@ final class TransformerImpl implements Transformer {
                                     // inspect and potentially replace all arguments of this method type (see Type.getArgumentTypes())
                                     // inspect and potentially replace its return type (see Type.getReturnType())
                                     // ElytronDefinition.class - type.getSort() == Type.METHOD type.getArgumentTypes() = [Lorg.objectweb.asm.Type;@72ea2f77
-                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.METHOD " + type.getArgumentTypes() );
+                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.METHOD " + type.getDescriptor() );
                                     for (Type argTypes : type.getArgumentTypes()) {
                                         System.out.println("argumentTypes: " +
                                                 " argTypes.getInternalName() = " + argTypes.getInternalName() +
@@ -432,6 +432,8 @@ final class TransformerImpl implements Transformer {
                                         copyBootstrapMethodArguments = cloneBootstrapMethodArguments(bootstrapMethodArguments);
                                     }
                                     copyBootstrapMethodArguments[looper] = Type.getMethodType(updatedDesc);
+                                    System.out.println("Updated type descriptor for BootstrapMethodArguments[" + looper + "] = " 
+                                            + ((Type)copyBootstrapMethodArguments[looper]).getDescriptor());
                                 }
                                 
                             } else if (argument instanceof Handle) {  // reference to a field or method
