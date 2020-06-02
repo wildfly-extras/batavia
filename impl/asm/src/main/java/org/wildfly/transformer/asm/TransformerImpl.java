@@ -16,7 +16,9 @@
 package org.wildfly.transformer.asm;
 
 
+import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
+import static org.objectweb.asm.Opcodes.POP;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -63,6 +65,7 @@ final class TransformerImpl implements Transformer {
     private static final String XML_SUFFIX = ".xml";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
     private static final String CLASS_FOR_NAME_PRIVATE_METHOD = "org_wildfly_tranformer_asm_classForName_String__boolean_ClassLoader";
+    private static final String REFLECTIONMODEL_INTERNAL_NAME = ReflectionModel.class.getName().replace('.','/');
     private static final String CLASS_OBJECT = "java/lang/Class";
     private static final String FORNAME_METHOD = "forName";
     private static final String MAP_OBJECT = "java/util/Map";
@@ -130,6 +133,16 @@ final class TransformerImpl implements Transformer {
             // clear transformed state at start of each class visit
             @Override
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                
+                if (signature != null) {
+                    String signatureOrig = signature;
+                    signature = replaceJavaXwithJakarta(signature);
+                    if (!signatureOrig.equals(signature)) {
+                        // mark the class as transformed
+                        setClassTransformed(true);
+                    }
+                }
+                
                 if (changeClassName != null) {
                     name = changeClassName;
                     changeClassName = null;
@@ -160,6 +173,14 @@ final class TransformerImpl implements Transformer {
             @Override
             public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
 
+                if (signature != null) {
+                    String signatureOrig = signature;
+                    signature = replaceJavaXwithJakarta(signature);
+                    if (!signatureOrig.equals(signature)) {
+                        // mark the class as transformed
+                        setClassTransformed(true);
+                    }
+                }
                 final String descOrig = desc;
                 desc = replaceJavaXwithJakarta(desc);
                 if (!descOrig.equals(desc)) {  // if we are changing
@@ -207,12 +228,29 @@ final class TransformerImpl implements Transformer {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 
+                if (signature != null) {
+                    String signatureOrig = signature;
+                    signature = replaceJavaXwithJakarta(signature);
+                    if (!signatureOrig.equals(signature)) {
+                        // mark the class as transformed
+                        setClassTransformed(true);
+                    }
+                }
                 final String descOrig2 = desc;
-
                 desc = replaceJavaXwithJakarta(desc);
-                if (!descOrig2.equals(desc)) {  // if we are changing
+                if ( !descOrig2.equals(desc)) {
                     // mark the class as transformed
                     setClassTransformed(true);
+                }
+                if (exceptions != null) {
+                    for(int looper = 0; looper < exceptions.length; looper++) {
+                        String exceptionOrig = exceptions[looper];
+                        exceptions[looper] = replaceJavaXwithJakarta(exceptions[looper]);
+                        if (!exceptionOrig.equals(exceptions[looper])) {
+                            // mark the class as transformed
+                            setClassTransformed(true);
+                        }
+                    }
                 }
                 return new MethodVisitor(Opcodes.ASM6,
                         super.visitMethod(access, name, desc, signature, exceptions)) {
@@ -262,17 +300,23 @@ final class TransformerImpl implements Transformer {
                             // handle both current forms ("(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;") 
                             // generate package name for generating copy of ReflectionModel class in application 
                             owner = transformerClassPackageName();
+                            if (owner != null ) {
+                                owner = owner + "/" + CLASS_FOR_NAME_PRIVATE_METHOD;
+                            } else {
+                                owner = CLASS_FOR_NAME_PRIVATE_METHOD;
+                            }
+                            
                             generateReflectionHandlingModelCode(owner);
-                            System.out.println("changing call to Class#" + name + " to instead call " + owner + "#" + name);
+                            System.out.println("changing call to Class#" + name + " to instead call " + owner + "/" + CLASS_FOR_NAME_PRIVATE_METHOD + "#" + name);
                             setClassTransformed(true);
                         }
                         
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
 
-                    private void generateReflectionHandlingModelCode(String handlingClassPackage) {
+                    private void generateReflectionHandlingModelCode(String handlingClassName) {
                         // check if we generated reflection handling code yet, if not, generate it
-                        String handlingClassName = handlingClassPackage + "/" + CLASS_FOR_NAME_PRIVATE_METHOD;
+                        
                         if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
 
                             if (!generatedReflectionModelHandlingCode.add(handlingClassName)) {
@@ -294,12 +338,13 @@ final class TransformerImpl implements Transformer {
                                 out.flush();
                                 byte[] bataviaReflectionModel = out.toByteArray();        
                                 ClassReader bataviaReflectionModelClassReader = new ClassReader(bataviaReflectionModel);
-                                final ClassWriter bataviaReflectionModelClassWriter = new ClassWriter(bataviaReflectionModelClassReader, 0);
+                                final ClassWriter bataviaReflectionModelClassWriter = new ClassWriter(bataviaReflectionModelClassReader, ClassWriter.COMPUTE_FRAMES);
                                 bataviaReflectionModelClassReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, bataviaReflectionModelClassWriter) {
                                     @Override
                                     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                                         System.out.println("change ReflectionModel class name from " + name + " to " + handlingClassName + 
-                                                " keep superName = " + superName);                                        
+                                                " keep superName = " + superName);
+                                        // change ReflectionModel class reference to new generated class name
                                         name = handlingClassName; 
                                         super.visit(version, access, name, signature, superName, interfaces);                                        
                                     }
@@ -313,24 +358,47 @@ final class TransformerImpl implements Transformer {
                                             @Override
                                             public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
                                                 // first generate the call to invoke mapping.get("rules_are_here") call
+                                                if (owner.equals(REFLECTIONMODEL_INTERNAL_NAME)) {
+                                                    owner = handlingClassName;
+                                                }
                                                 super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);   
                                                 // then if its actually the call to mapping.get, add additional code for adding all transformation rules to mapping
                                                 if (MAP_OBJECT.equals(owner) && MAP_GET_METHOD.equals(name)) {  
                                                     System.out.println("Injecting transformation rules");
-
+                                                    super.visitInsn(POP);  // generate extra pop for the call to mapping.get("rules_are_here")
+                                                    
                                                     for (Map.Entry<String, String> possibleReplacement : mappingWithSeps.entrySet()) {
+                                                        super.visitFieldInsn(GETSTATIC, handlingClassName, "mapping", "Ljava/util/Map;");
                                                         super.visitLdcInsn(possibleReplacement.getKey());
                                                         super.visitLdcInsn(possibleReplacement.getValue());
                                                         super.visitMethodInsn(INVOKEINTERFACE, MAP_OBJECT, MAP_PUT_METHOD, 
                                                                 MAP_PUT_METHOD_DESC, true);
+                                                        super.visitInsn(POP);
                                                     }
+                                                    int setIterationCount = 0;
                                                     for (Map.Entry<String, String> possibleReplacement : mappingWithDots.entrySet()) {
+                                                        super.visitFieldInsn(GETSTATIC, handlingClassName, "mapping", "Ljava/util/Map;");
                                                         super.visitLdcInsn(possibleReplacement.getKey());
                                                         super.visitLdcInsn(possibleReplacement.getValue());
                                                         super.visitMethodInsn(INVOKEINTERFACE, MAP_OBJECT, MAP_PUT_METHOD, 
                                                                 MAP_PUT_METHOD_DESC, true);
+                                                        setIterationCount++;
+                                                        if (setIterationCount == mappingWithDots.entrySet().size()) {
+                                                            // don't generate the last call to pop, as the first call to mapping.get("rules_are_here") will generate an extra pop here
+                                                        }
+                                                        else { 
+                                                            super.visitInsn(POP);
+                                                        }
                                                     }
                                                 }
+                                            }
+
+                                            @Override
+                                            public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+                                                if (owner.equals(REFLECTIONMODEL_INTERNAL_NAME)) {
+                                                    owner = handlingClassName;
+                                                }
+                                                super.visitFieldInsn(opcode, owner, name, descriptor);
                                             }
                                         };
                                     }
@@ -356,7 +424,7 @@ final class TransformerImpl implements Transformer {
                             transformedPackage = transformedPackage.substring(0,index);
                         }
                         else {
-                            throw new RuntimeException("Could not determine package name for " + classReader.getClassName());
+                            return null;  // no package used
                         }
                         return transformedPackage; 
                     }
@@ -512,13 +580,22 @@ final class TransformerImpl implements Transformer {
                             final Label end,
                             final int index) {
 
+                        String mutableSignature = signature;
+                        if (mutableSignature != null) {
+                            mutableSignature = replaceJavaXwithJakarta(mutableSignature);
+                            if (!mutableSignature.equals(signature)) {
+                                // mark the class as transformed
+                                setClassTransformed(true);
+                            }
+                        }
+                        
                         final String descOrig = descriptor;
                         final String replacement = replaceJavaXwithJakarta(descriptor);
                         if (!descOrig.equals(replacement)) {  // if we are changing
                             // mark the class as transformed
                             setClassTransformed(true);
                         }
-                        mv.visitLocalVariable(name, replacement, signature, start, end, index);
+                        mv.visitLocalVariable(name, replacement, mutableSignature, start, end, index);
                     }
 
                     @Override
@@ -700,5 +777,4 @@ final class TransformerImpl implements Transformer {
         }
 
     }
-    
 }
