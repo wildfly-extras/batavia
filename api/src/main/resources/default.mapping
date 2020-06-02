@@ -1,3 +1,4 @@
+javax/activation/=jakarta/activation/
 javax/annotation/security/=jakarta/annotation/security/
 javax/annotation/sql/=jakarta/annotation/sql/
 javax/annotation/G=jakarta/annotation/G
