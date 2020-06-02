@@ -73,7 +73,6 @@ final class TransformerImpl implements Transformer {
     private static final String MAP_PUT_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
     private static final String MAP_GET_METHOD = "get";
     
-    private static final boolean useASM7 = getMajorJavaVersion() >= 11;
     private boolean classTransformed;
     private String changeClassName;
     final Map<String, String> mappingWithSeps;
@@ -99,7 +98,7 @@ final class TransformerImpl implements Transformer {
         ClassReader classReader = new ClassReader(clazz);
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
-        classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, classWriter) {
+        classReader.accept(new ClassVisitor(Opcodes.ASM7, classWriter) {
 
             @Override
             public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
@@ -339,7 +338,7 @@ final class TransformerImpl implements Transformer {
                                 byte[] bataviaReflectionModel = out.toByteArray();        
                                 ClassReader bataviaReflectionModelClassReader = new ClassReader(bataviaReflectionModel);
                                 final ClassWriter bataviaReflectionModelClassWriter = new ClassWriter(bataviaReflectionModelClassReader, ClassWriter.COMPUTE_FRAMES);
-                                bataviaReflectionModelClassReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, bataviaReflectionModelClassWriter) {
+                                bataviaReflectionModelClassReader.accept(new ClassVisitor(Opcodes.ASM7, bataviaReflectionModelClassWriter) {
                                     @Override
                                     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
                                         System.out.println("change ReflectionModel class name from " + name + " to " + handlingClassName + 
@@ -743,7 +742,7 @@ final class TransformerImpl implements Transformer {
 
     private class MyAnnotationVisitor extends AnnotationVisitor {
         public MyAnnotationVisitor(AnnotationVisitor av) {
-            super(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, av);
+            super(Opcodes.ASM7, av);
         }
 
         @Override
