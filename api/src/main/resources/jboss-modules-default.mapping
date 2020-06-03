@@ -23,3 +23,4 @@ javax/transaction/api=jakarta/transaction/api
 javax/validation/api=jakarta/validation/api
 javax/websocket/api=jakarta/websocket/api
 javax/ws/rs/api=jakarta/ws/rs/api
+javax/xml/bind=jakarta/xml/bind
