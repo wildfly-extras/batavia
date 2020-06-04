@@ -32,3 +32,4 @@ javax/transaction/U=jakarta/transaction/U
 javax/validation/=jakarta/validation/
 javax/websocket/=jakarta/websocket/
 javax/ws/rs/=jakarta/ws/rs/
+javax/xml/bind/=jakarta/xml/bind/
