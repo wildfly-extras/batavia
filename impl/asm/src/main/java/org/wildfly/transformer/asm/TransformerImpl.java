@@ -99,28 +99,20 @@ final class TransformerImpl implements Transformer {
         final ClassWriter classWriter = new ClassWriter(classReader, 0);
 
         classReader.accept(new ClassVisitor(Opcodes.ASM7, classWriter) {
+            @Override
+            public void visitOuterClass(String owner, String name, String descriptor) {
+                super.visitOuterClass(owner, name, replaceJavaXwithJakarta(descriptor));
+            }
 
             @Override
             public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
-                final String descOrig = descriptor;
-                descriptor = replaceJavaXwithJakarta(descriptor);
-                if (!descOrig.equals(descriptor)) {  // if we are changing
-                    // mark the class as transformed
-                    setClassTransformed(true);
-                }
-                AnnotationVisitor av =  super.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
+                AnnotationVisitor av =  super.visitTypeAnnotation(typeRef, typePath, replaceJavaXwithJakarta(descriptor), visible);
                 return new MyAnnotationVisitor(av);
             }
 
             @Override
             public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                final String descOrig = descriptor;
-                descriptor = replaceJavaXwithJakarta(descriptor);
-                if (!descOrig.equals(descriptor)) {  // if we are changing
-                    // mark the class as transformed
-                    setClassTransformed(true);
-                }
-                AnnotationVisitor av = super.visitAnnotation(descriptor, visible);
+                AnnotationVisitor av = super.visitAnnotation(replaceJavaXwithJakarta(descriptor), visible);
                 return new MyAnnotationVisitor(av);
             }
 
@@ -132,39 +124,20 @@ final class TransformerImpl implements Transformer {
             // clear transformed state at start of each class visit
             @Override
             public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-                
-                if (signature != null) {
-                    String signatureOrig = signature;
-                    signature = replaceJavaXwithJakarta(signature);
-                    if (!signatureOrig.equals(signature)) {
-                        // mark the class as transformed
-                        setClassTransformed(true);
-                    }
-                }
-                
+
+                signature = replaceJavaXwithJakarta(signature);
+
                 if (changeClassName != null) {
                     name = changeClassName;
                     changeClassName = null;
                 }
-                
-                if (superName != null) {
-                    String superNameOrig = superName;
-                    superName = replaceJavaXwithJakarta(superName);
-                    if (!superNameOrig.equals(superName)) {
-                        // mark the class as transformed
-                        setClassTransformed(true);
-                    }
-                }
+
+                superName = replaceJavaXwithJakarta(superName);
 
                 for(int index = 0; index < interfaces.length; index++) {
-                    String orig = interfaces[index];
                     interfaces[index] = replaceJavaXwithJakarta(interfaces[index]);
-                    if (!orig.equals(interfaces[index])) {
-                        // mark the class as transformed
-                        setClassTransformed(true);
-                    }
                 }
-                
+
                 super.visit(version, access, name, signature, superName, interfaces);
             }
 
@@ -172,47 +145,24 @@ final class TransformerImpl implements Transformer {
             @Override
             public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
 
-                if (signature != null) {
-                    String signatureOrig = signature;
-                    signature = replaceJavaXwithJakarta(signature);
-                    if (!signatureOrig.equals(signature)) {
-                        // mark the class as transformed
-                        setClassTransformed(true);
-                    }
-                }
-                final String descOrig = desc;
+                signature = replaceJavaXwithJakarta(signature);
+
                 desc = replaceJavaXwithJakarta(desc);
-                if (!descOrig.equals(desc)) {  // if we are changing
-                    // mark the class as transformed
-                    setClassTransformed(true);
-                }
                 FieldVisitor fv = super.visitField(access, name, desc, signature, value);
                 return new FieldVisitor(api, fv) {
 
                     @Override
                     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                        final String descOrig = descriptor;
                         descriptor = replaceJavaXwithJakarta(descriptor);
-                        if (!descOrig.equals(descriptor)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
                         AnnotationVisitor av = fv.visitAnnotation(descriptor, visible);
                         return new MyAnnotationVisitor(av);
-                        
                     }
 
                     @Override
                     public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
-                        final String descOrig = descriptor;
                         descriptor = replaceJavaXwithJakarta(descriptor);
-                        if (!descOrig.equals(descriptor)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
                         AnnotationVisitor av = fv.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
                         return new MyAnnotationVisitor(av);
-                        
                     }
                 };
             }
@@ -228,69 +178,63 @@ final class TransformerImpl implements Transformer {
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 
                 if (signature != null) {
-                    String signatureOrig = signature;
                     signature = replaceJavaXwithJakarta(signature);
-                    if (!signatureOrig.equals(signature)) {
-                        // mark the class as transformed
-                        setClassTransformed(true);
-                    }
                 }
-                final String descOrig2 = desc;
                 desc = replaceJavaXwithJakarta(desc);
-                if ( !descOrig2.equals(desc)) {
-                    // mark the class as transformed
-                    setClassTransformed(true);
-                }
                 if (exceptions != null) {
                     for(int looper = 0; looper < exceptions.length; looper++) {
-                        String exceptionOrig = exceptions[looper];
                         exceptions[looper] = replaceJavaXwithJakarta(exceptions[looper]);
-                        if (!exceptionOrig.equals(exceptions[looper])) {
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
                     }
                 }
                 return new MethodVisitor(Opcodes.ASM6,
                         super.visitMethod(access, name, desc, signature, exceptions)) {
 
                     @Override
-                    public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
-                        final String descOrig = descriptor;
+                    public AnnotationVisitor visitInsnAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
                         descriptor = replaceJavaXwithJakarta(descriptor);
-                        if (!descOrig.equals(descriptor)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
+
+                        return new MyAnnotationVisitor(mv.visitInsnAnnotation(typeRef, typePath, descriptor, visible));
+                    }
+
+                    @Override
+                    public AnnotationVisitor visitLocalVariableAnnotation(int typeRef, TypePath typePath, Label[] start, Label[] end, int[] index, String descriptor, boolean visible) {
+                        descriptor = replaceJavaXwithJakarta(descriptor);
+                        return new MyAnnotationVisitor(mv.visitLocalVariableAnnotation(typeRef, typePath, start, end, index, descriptor, visible));
+                    }
+
+                    @Override
+                    public void visitMultiANewArrayInsn(String descriptor, int numDimensions) {
+                        descriptor = replaceJavaXwithJakarta(descriptor);
+                        super.visitMultiANewArrayInsn(descriptor, numDimensions);
+                    }
+
+                    @Override
+                    public AnnotationVisitor visitTryCatchAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
+                        descriptor = replaceJavaXwithJakarta(descriptor);
+                        return new MyAnnotationVisitor(mv.visitTryCatchAnnotation(typeRef, typePath, descriptor, visible));
+                    }
+
+                    @Override
+                    public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
+
+                        descriptor = replaceJavaXwithJakarta(descriptor);
                         AnnotationVisitor av = mv.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
                         return new MyAnnotationVisitor(av);
                     }
-                    
+
                     @Override
                     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                        final String descOrig = descriptor;
-
                         descriptor = replaceJavaXwithJakarta(descriptor);
-                        if (!descOrig.equals(descriptor)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
-                        
                         AnnotationVisitor av = mv.visitAnnotation(descriptor, visible);
                         return new MyAnnotationVisitor(av);
                     }
-                    
+
                     @Override
                     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
 
-                        final String descOrig = desc;
+
                         desc = replaceJavaXwithJakarta(desc);
-                        final String ownerOrig = owner;
                         owner = replaceJavaXwithJakarta(owner);
-                        if (!descOrig.equals(desc) | !ownerOrig.equals(owner)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
 
                         // handle Class.forName(String name, boolean initialize,ClassLoader loader)
                         // invokestatic  #17 Method java/lang/Class.forName:(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;
@@ -304,25 +248,25 @@ final class TransformerImpl implements Transformer {
                             } else {
                                 owner = CLASS_FOR_NAME_PRIVATE_METHOD;
                             }
-                            
+
                             generateReflectionHandlingModelCode(owner);
                             System.out.println("changing call to Class#" + name + " to instead call " + owner + "/" + CLASS_FOR_NAME_PRIVATE_METHOD + "#" + name);
                             setClassTransformed(true);
                         }
-                        
+
                         mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     }
 
                     private void generateReflectionHandlingModelCode(String handlingClassName) {
                         // check if we generated reflection handling code yet, if not, generate it
-                        
+
                         if (!generatedReflectionModelHandlingCode.contains(handlingClassName)) {
 
                             if (!generatedReflectionModelHandlingCode.add(handlingClassName)) {
                                 // another thread will (or did) generate extra code 
                                 return;
                             }
-                            
+
                             System.out.println("Generating reflection handling code " + handlingClassName);
                             try {
                                 // read BataviaReflectionModel bytecode as byte array, then modify it for handling javax => Jakarta transformation rules
@@ -442,8 +386,6 @@ final class TransformerImpl implements Transformer {
                         }
                         if (!ownerOrig.equals(bootstrapMethodHandleOwner) ||
                         !bootstrapMethodHandleDescOrig.equals(bootstrapMethodHandleDesc)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
                             bootstrapMethodHandle = new Handle(
                                     bootstrapMethodHandle.getTag(),
                                     bootstrapMethodHandleOwner,
@@ -510,8 +452,6 @@ final class TransformerImpl implements Transformer {
                                 String origOwner = handle.getOwner();
                                 String updatedOwner = replaceJavaXwithJakarta(handle.getOwner()); 
                                 if (!origDesc.equals(updatedDesc) || !origOwner.equals(updatedOwner)) {  // if we are changing
-                                    // mark the class as transformed
-                                    setClassTransformed(true);
                                     handle = new Handle(
                                             handle.getTag(),
                                             updatedOwner,
@@ -527,6 +467,7 @@ final class TransformerImpl implements Transformer {
                             } else if( argument instanceof ConstantDynamic) {
                                 // TODO: runtime handling of ConstantDynamic)
                                 ConstantDynamic constantDynamic = (ConstantDynamic)argument;
+                                Thread.dumpStack();  // TODO: remove this dumpStack as soon as we identify that its happening
                                 throw new IllegalStateException("ConstantDynamic is not handled " +constantDynamic.toString());
                             }
                         }
@@ -552,8 +493,6 @@ final class TransformerImpl implements Transformer {
                             String descOrig = type.getDescriptor();
                             String desc = replaceJavaXwithJakarta(descOrig);
                             if (!descOrig.equals(desc)) { // if we are changing
-                                // mark the class as transformed
-                                setClassTransformed(true);
                                 mv.visitLdcInsn(Type.getType(desc));
                                 return;
                             }
@@ -563,8 +502,6 @@ final class TransformerImpl implements Transformer {
                             final String typeOrig = (String) value;
                             String replacement = replaceJavaXwithJakarta((String) value);
                             if (!typeOrig.equals(replacement)) {  // if we are changing
-                                // mark the class as transformed
-                                setClassTransformed(true);
                                 mv.visitLdcInsn(replacement);
                                 return;
                             }
@@ -581,47 +518,17 @@ final class TransformerImpl implements Transformer {
                             final Label end,
                             final int index) {
 
-                        String mutableSignature = signature;
-                        if (mutableSignature != null) {
-                            mutableSignature = replaceJavaXwithJakarta(mutableSignature);
-                            if (!mutableSignature.equals(signature)) {
-                                // mark the class as transformed
-                                setClassTransformed(true);
-                            }
-                        }
-                        
-                        final String descOrig = descriptor;
-                        final String replacement = replaceJavaXwithJakarta(descriptor);
-                        if (!descOrig.equals(replacement)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
-                        mv.visitLocalVariable(name, replacement, mutableSignature, start, end, index);
+                        mv.visitLocalVariable(name, replaceJavaXwithJakarta(descriptor), replaceJavaXwithJakarta(signature), start, end, index);
                     }
 
                     @Override
                     public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-                        final String descOrig = desc;
-                        desc = replaceJavaXwithJakarta(desc);
-                        final String ownerOrig = owner;
-                        owner = replaceJavaXwithJakarta(owner);
-                        if (!descOrig.equals(desc) | !ownerOrig.equals(owner)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
-                        mv.visitFieldInsn(opcode, owner, name, desc);
+                        mv.visitFieldInsn(opcode, replaceJavaXwithJakarta(owner), name, replaceJavaXwithJakarta(desc));
                     }
 
                     @Override
                     public void visitTypeInsn(final int opcode, final String type) {
-                        final String typeOrig = type;
-
-                        final String replacement = replaceJavaXwithJakarta(type);
-                        if (!typeOrig.equals(replacement)) {  // if we are changing
-                            // mark the class as transformed
-                            setClassTransformed(true);
-                        }
-                        mv.visitTypeInsn(opcode, replacement);
+                        mv.visitTypeInsn(opcode, replaceJavaXwithJakarta(type));
                     }
 
                 };
@@ -639,6 +546,9 @@ final class TransformerImpl implements Transformer {
     }
 
     private String replaceJavaXwithJakarta(String desc) {
+        if ( desc == null) {
+            return null;
+        }
         StringBuilder stringBuilder = new StringBuilder(desc);
         for (Map.Entry<String, String> possibleReplacement: mappingWithSeps.entrySet()) {
             String key = possibleReplacement.getKey();
@@ -662,19 +572,12 @@ final class TransformerImpl implements Transformer {
                 pos = stringBuilder.indexOf(key, next);
             }
         }
-        return stringBuilder.toString();
-    }
-    
-    private static int getMajorJavaVersion() {
-        int major = 8;
-        String version = System.getProperty("java.specification.version", null);
-        if (version != null) {
-            Matcher matcher = Pattern.compile("^(?:1\\.)?(\\d+)$").matcher(version);
-            if (matcher.find()) {
-                major = Integer.valueOf(matcher.group(1));
-            }
+        String result = stringBuilder.toString();
+        if (!result.equals(desc)) {  // if we are changing
+            // mark the class as transformed
+            setClassTransformed(true);
         }
-        return major;
+        return result;
     }
 
     public void setClassTransformed(boolean classTransformed) {
@@ -754,21 +657,13 @@ final class TransformerImpl implements Transformer {
 
         @Override
         public void visitEnum(String name, String descriptor, String value) {
-            if (descriptor != null) {
-                descriptor = replaceJavaXwithJakarta(descriptor);
-            }
-            av.visitEnum(name, descriptor, value);
+            av.visitEnum(name, replaceJavaXwithJakarta(descriptor), value);
         }
 
         @Override
         public AnnotationVisitor visitAnnotation(String name, String descriptor) {
-            if (descriptor != null) {
-                descriptor = replaceJavaXwithJakarta(descriptor);
-            }
-            AnnotationVisitor av2 = av.visitAnnotation(name, descriptor);
+            AnnotationVisitor av2 = av.visitAnnotation(name, replaceJavaXwithJakarta(descriptor));
             return new MyAnnotationVisitor(av2);
-            
-            
         }
 
         @Override
