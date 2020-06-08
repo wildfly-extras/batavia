@@ -420,7 +420,7 @@ final class TransformerImpl implements Transformer {
                                     // inspect and potentially replace all arguments of this method type (see Type.getArgumentTypes())
                                     // inspect and potentially replace its return type (see Type.getReturnType())
                                     // ElytronDefinition.class - type.getSort() == Type.METHOD type.getArgumentTypes() = [Lorg.objectweb.asm.Type;@72ea2f77
-                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.METHOD " + type.getDescriptor() );
+                                    System.out.println("TODO: https://github.com/wildfly-extras/batavia/issues/28 for Type.METHOD " + type.getDescriptor()  + " updatedDesc=" + updatedDesc);
                                     for (Type argTypes : type.getArgumentTypes()) {
                                         System.out.println("argumentTypes: " +
                                                 " argTypes.getInternalName() = " + argTypes.getInternalName() +
