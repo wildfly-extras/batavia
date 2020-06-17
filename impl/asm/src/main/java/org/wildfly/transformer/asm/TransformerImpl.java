@@ -229,6 +229,16 @@ final class TransformerImpl implements Transformer {
                     }
 
                     @Override
+                    public AnnotationVisitor visitParameterAnnotation(int parameter, String descriptor, boolean visible) {
+                        return super.visitParameterAnnotation(parameter, replaceJavaXwithJakarta(descriptor), visible);
+                    }
+
+                    @Override
+                    public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+                        super.visitTryCatchBlock(start, end, handler, replaceJavaXwithJakarta(type));
+                    }
+
+                    @Override
                     public AnnotationVisitor visitInsnAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
                         descriptor = replaceJavaXwithJakarta(descriptor);
 
