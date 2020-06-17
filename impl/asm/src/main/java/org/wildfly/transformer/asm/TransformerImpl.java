@@ -27,8 +27,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
@@ -188,6 +186,47 @@ final class TransformerImpl implements Transformer {
                 }
                 return new MethodVisitor(Opcodes.ASM6,
                         super.visitMethod(access, name, desc, signature, exceptions)) {
+                    
+                    // Transform javax types in stack frames 
+                    @Override
+                    public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
+                        Object[] modifiedLocal = null;
+                        Object[] modifiedStack = null;
+                        for (int looper = 0; looper < numLocal;looper ++) {
+                            if(local[looper] instanceof String) {
+                                String value = replaceJavaXwithJakarta((String)local[looper]);
+                                if( local[looper] != null && (false == local[looper].equals(value))) {
+                                    // if transformation to jakarta type was made, copy original stack frame and use new value
+                                    if (modifiedLocal == null) {
+                                        modifiedLocal = new Object[numLocal];
+                                        for (int innerLooper = 0; innerLooper < numLocal;innerLooper ++) {
+                                            modifiedLocal[innerLooper] = local[innerLooper];
+                                        }
+                                    }
+                                    modifiedLocal[looper] = value;
+                                }
+                            }
+                        }
+                        for (int looper = 0; looper < numStack;looper ++) {
+                            if(stack[looper] instanceof String) {
+                                String value = replaceJavaXwithJakarta((String)stack[looper]);
+                                // if transformation to jakarta type was made, copy original stack frame and use new value
+                                if( stack[looper] != null && (false == stack[looper].equals(value))) {
+                                    if (modifiedStack == null) {
+                                        modifiedStack = new Object[numStack];
+                                        for (int innerLooper = 0; innerLooper < numStack;innerLooper ++) {
+                                            modifiedStack[innerLooper] = stack[innerLooper];
+                                        }
+                                    }
+                                    modifiedStack[looper] = value;
+                                }
+                            }
+                        }
+                        
+                        super.visitFrame(type, 
+                                numLocal, modifiedLocal != null ? modifiedLocal:local, 
+                                numStack, modifiedStack != null ? modifiedStack: stack);
+                    }
 
                     @Override
                     public AnnotationVisitor visitInsnAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
