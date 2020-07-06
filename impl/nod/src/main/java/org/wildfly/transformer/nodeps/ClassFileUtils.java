@@ -17,88 +17,11 @@ package org.wildfly.transformer.nodeps;
 
 /**
  * Utility class for working with class file content.
- * Compatible with Java VM specification version 13 and below.
+ * Compatible with Java VM specification version 14 and below.
  *
  * <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
 final class ClassFileUtils {
-
-    /**
-     * <code>CONSTANT_Utf8_info</code> structure tag.
-     */
-    static final byte UTF8 = 1;
-    /**
-     * <code>CONSTANT_Integer_info</code> structure tag.
-     */
-    static final byte INTEGER = 3;
-    /**
-     * <code>CONSTANT_Float_info</code> structure tag.
-     */
-    static final byte FLOAT = 4;
-    /**
-     * <code>CONSTANT_Long_info</code> structure tag.
-     */
-    static final byte LONG = 5;
-    /**
-     * <code>CONSTANT_Double_info</code> structure tag.
-     */
-    static final byte DOUBLE = 6;
-    /**
-     * <code>CONSTANT_Class_info</code> structure tag.
-     */
-    static final byte CLASS = 7;
-    /**
-     * <code>CONSTANT_String_info</code> structure tag.
-     */
-    static final byte STRING = 8;
-    /**
-     * <code>CONSTANT_Fieldref_info</code> structure tag.
-     */
-    static final byte FIELD_REF = 9;
-    /**
-     * <code>CONSTANT_Methodref_info</code> structure tag.
-     */
-    static final byte METHOD_REF = 10;
-    /**
-     * <code>CONSTANT_InterfaceMethodref_info</code> structure tag.
-     */
-    static final byte INTERFACE_METHOD_REF = 11;
-    /**
-     * <code>CONSTANT_NameAndType_info</code> structure tag.
-     */
-    static final byte NAME_AND_TYPE = 12;
-    /**
-     * <code>CONSTANT_MethodHandle_info</code> structure tag.
-     */
-    static final byte METHOD_HANDLE = 15;
-    /**
-     * <code>CONSTANT_MethodType_info</code> structure tag.
-     */
-    static final byte METHOD_TYPE = 16;
-    /**
-     * <code>CONSTANT_Dynamic_info</code> structure tag.
-     */
-    static final byte DYNAMIC = 17;
-    /**
-     * <code>CONSTANT_InvokeDynamic_info</code> structure tag.
-     */
-    static final byte INVOKE_DYNAMIC = 18;
-    /**
-     * <code>CONSTANT_Module_info</code> structure tag.
-     */
-    static final byte MODULE = 19;
-    /**
-     * <code>CONSTANT_Package_info</code> structure tag.
-     */
-    static final byte PACKAGE = 20;
-    /**
-     * Constant pool size index inside class file.
-     */
-    static final int POOL_SIZE_INDEX = 8;
-    /**
-     * Constant pool content beginning index inside class file.
-     */
-    static final int POOL_CONTENT_INDEX = POOL_SIZE_INDEX + 2;
 
     /**
      * Constructor.
@@ -119,55 +42,40 @@ final class ClassFileUtils {
     }
 
     /**
-     * Writes unsigned short value to given class file position.
+     * Reads unsigned int value from given class file position.
      *
      * @param clazz class data
-     * @param offset the index to start writing from
-     * @param value the value to write
+     * @param offset the index to start reading from
+     * @return read value
      */
-    static void writeUnsignedShort(final byte[] clazz, final int offset, final int value) {
-        clazz[offset] = (byte) (value >>> 8);
-        clazz[offset + 1] = (byte) value;
+    static int readUnsignedInt(final byte[] clazz, final int offset) {
+        return ((clazz[offset] & 0xFF) << 24) | ((clazz[offset + 1] & 0xFF) << 16) | ((clazz[offset + 2] & 0xFF) << 8) | (clazz[offset + 3] & 0xFF);
     }
 
     /**
-     * Returns pointers to the <code>class constant pool items</code> indexed from 1 till end of array.
-     * Every <code>zero</code> inside it represent <code>undefined</code> value.
-     * One special field in this array is value at position <code>zero</code>.
-     * This value holds pointer to the end of the class constant pool.
+     * Writes unsigned short value to given byte buffer.
      *
-     * @param clazz class to create array of constant pool item pointers for
-     * @return array of constant pool item pointers
+     * @param buffer byte buffer
+     * @param offset the index to start writing from
+     * @param value the value to write
      */
-    static int[] getConstantPool(final byte[] clazz) {
-        final int constantPoolSize = readUnsignedShort(clazz, POOL_SIZE_INDEX);
-        final int[] retVal = new int[constantPoolSize];
-        int position = POOL_CONTENT_INDEX;
-        byte tag;
-        int utf8Length;
+    static void writeUnsignedShort(final byte[] buffer, final int offset, final int value) {
+        buffer[offset] = (byte) (value >>> 8);
+        buffer[offset + 1] = (byte) value;
+    }
 
-        for (int i = 1; i < constantPoolSize; i++) {
-            retVal[i] = position;
-            tag = clazz[position++];
-            if (tag == UTF8) {
-                utf8Length = readUnsignedShort(clazz, position);
-                position += 2 + utf8Length;
-            } else if (tag == CLASS || tag == STRING || tag == METHOD_TYPE || tag == MODULE || tag == PACKAGE) {
-                position += 2;
-            } else if (tag == LONG || tag == DOUBLE) {
-                position += 8;
-                i++;
-            } else if (tag == INTEGER || tag == FLOAT || tag == FIELD_REF || tag == METHOD_REF ||
-                       tag == INTERFACE_METHOD_REF || tag == NAME_AND_TYPE || tag == DYNAMIC || tag == INVOKE_DYNAMIC) {
-                position += 4;
-            } else if (tag == METHOD_HANDLE) {
-                position += 3;
-            } else {
-                throw new UnsupportedClassVersionError();
-            }
-        }
-        retVal[0] = position;
-        return retVal;
+    /**
+     * Writes unsigned int value to given byte buffer.
+     *
+     * @param buffer byte buffer
+     * @param offset the index to start writing from
+     * @param value the value to write
+     */
+    static void writeUnsignedInt(final byte[] buffer, final int offset, final int value) {
+        buffer[offset] = (byte) (value >>> 24);
+        buffer[offset + 1] = (byte) (value >>> 16);
+        buffer[offset + 2] = (byte) (value >>> 8);
+        buffer[offset + 3] = (byte) value;
     }
 
     /**
@@ -227,16 +135,14 @@ final class ClassFileUtils {
     /**
      * Counts how many <code>CONSTANT_Utf8_info</code> structures are present in the class constant pool.
      *
-     * @param clazz class bytes
-     * @param constantPool pointers to class constant pool
+     * @param cpRefs pointers to class constant pool
      * @return <code>CONSTANT_Utf8_info</code> structures count in class constant pool
      */
-    static int countUtf8Items(final byte[] clazz, final int[] constantPool) {
+    static int countUtf8Items(final ConstantPoolRefs cpRefs) {
         int retVal = 0;
 
-        for (int i = 1; i < constantPool.length; i++) {
-            if (constantPool[i] == 0) continue;
-            if (UTF8 == clazz[constantPool[i]]) retVal++;
+        for (int i = 1; i < cpRefs.getSize(); i++) {
+            if (cpRefs.isUtf8(i)) retVal++;
         }
 
         return retVal;
