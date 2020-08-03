@@ -15,72 +15,67 @@
  */
 package org.wildfly.transformer;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import static java.lang.Thread.currentThread;
 
 /**
  * Resource transformer builder instance can be manipulated only by thread that created it.
+ * Cannot be used concurrently by multiple threads as instances of this class are not thread safe.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
 public abstract class TransformerBuilder {
-    private static final String DEFAULT_CONFIG = "default.mapping";
-    private static final int MAX_MAPPINGS = 0xFFFF;
-    private static final char DOT = '.';
-    private static final char SEP = '/';
-    private final Thread thread;
-    private final Map<String, String> mappingWithSeps;
-    private final Map<String, String> mappingWithDots;
-    private InputStream mappingFile;
+    private final Thread thread = currentThread();
+    protected final Map<Config, String> configs = new HashMap<>();
+    protected Boolean verbose;
     private boolean built;
 
     protected TransformerBuilder() {
-        thread = currentThread();
-        mappingWithSeps = new HashMap<>();
-        mappingWithDots = new HashMap<>();
+        // only subclasses can override it
     }
 
     /**
-     * Adds custom packages mapping defined in a configuration file.
-     * First this method tries to read the specified file from the file system.
-     * If file doesn't exist on the file system then class loader resources are inspected.
-     * The specified file <code>config</code> must exist either on the  file system or
-     * in class loader resources otherwise exception is thrown.
-     * Once this method is called it turns off <i>default packages mapping configuration</i>
+     * Adds custom configuration mapping defined in a configuration file.
+     * Once this method is called it turns off <i>default configuration mapping</i>
      * and <i>user provided configuration</i> is used instead.
      *
-     * @param config packages mapping configuration file
+     * @param configType configuration file type
+     * @param configLocation configuration file location on class path
      * @return this builder instance
      * @throws ConcurrentModificationException if this builder instance is used by multiple threads
-     * @throws IllegalStateException if either this or {@link #build()} method have been already called
+     * @throws IllegalStateException if either {@link #build()} or this method (with given config type) have been already called
      * @throws IllegalArgumentException if method parameter is <code>null</code>
      * or if method parameter equals to <code>empty string</code>
-     * or if file doesn't exist neither on the file system nor in class loader resources
-     * @throws IOException if some I/O error occurs while reading the configuration file <code>config</code>
      */
-    public final TransformerBuilder setPackagesMapping(final String config) throws IOException {
+    public final TransformerBuilder setConfiguration(final Config configType, final String configLocation) {
         // preconditions
         if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
         if (built) throw new IllegalStateException("Builder instance have been already closed");
-        if (mappingFile != null) throw new IllegalStateException("This method can be called only once");
-        if (config == null || "".equals(config)) throw new IllegalArgumentException("Parameter cannot be neither null nor empty string");
+        if (configType == null) throw new IllegalArgumentException("Parameter cannot be null");
+        if (configLocation == null || "".equals(configLocation)) throw new IllegalArgumentException("Parameter cannot be neither null nor empty string");
+        if (configs.containsKey(configType)) throw new IllegalStateException("This method can be called only once for given configuration type");
         // implementation
-        final File userConfig = new File(config);
-        if (userConfig.exists() && userConfig.isFile()) {
-            mappingFile = new FileInputStream(userConfig);
-        } else {
-            mappingFile = TransformerBuilder.class.getResourceAsStream(config);
-        }
-        if (mappingFile == null) throw new IllegalArgumentException("Couldn't find specified config file neither on file system nor on class path");
+        configs.put(configType, configLocation);
+        return this;
+    }
+
+    /**
+     * Sets verbosity of underlying transformation engine.
+     *
+     * @param verbose if output should be verbose or not
+     * @return this builder instance
+     */
+    public final TransformerBuilder setVerbose(final boolean verbose) {
+        // preconditions
+        if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
+        if (built) throw new IllegalStateException("Builder instance have been already closed");
+        if (this.verbose != null) throw new IllegalStateException("This method can be called only once");
+        // implementation
+        this.verbose = verbose;
         return this;
     }
 
@@ -96,60 +91,20 @@ public abstract class TransformerBuilder {
      * or if some package defined in one package mapping is a substring of package in another package mapping
      * @throws IOException if configuration reading process failed with unexpected I/O error
      */
-    public final Transformer build() throws IOException {
+    public final ArchiveTransformer build() throws IOException {
         // preconditions
         if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
         if (built) throw new IllegalStateException("Builder instance have been already closed");
-        // implementation
         built = true;
-        try {
-            if (mappingFile == null) {
-                mappingFile = TransformerBuilder.class.getResourceAsStream(SEP + DEFAULT_CONFIG);
-            }
-            final Properties packagesMapping = new Properties();
-            packagesMapping.load(mappingFile);
-            String to;
-            for (String from : packagesMapping.stringPropertyNames()) {
-                to = packagesMapping.getProperty(from);
-                if (to.indexOf(DOT) != -1 || from.indexOf(DOT) != -1) {
-                    throw new IllegalArgumentException("Packages mapping config file must be property file in path separator format only");
-                }
-                addMapping(from, to);
-            }
-            if (mappingWithSeps.size() == 0) throw new IllegalStateException("No mapping was defined in packages mapping config file");
-        } finally {
-            safeClose(mappingFile);
-        }
-
-        return newInstance(mappingWithSeps, mappingWithDots);
+        // implementation
+        return buildInternal();
     }
 
     /**
      * Creates new transformer instance.
      *
-     * @param mappingWithSeps packages mapping in path separator form
-     * @param mappingWithDots packages mapping in dot form
      * @return new transformer instance
      */
-    public abstract Transformer newInstance(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots);
-
-    private void addMapping(final String from, final String to) {
-        if (from == null || to == null) throw new IllegalArgumentException("Package definition cannot be null");
-        if (from.length() == 0 || to.length() == 0) throw new IllegalArgumentException("Package definition cannot be empty string");
-        if (from.equals(to)) throw new IllegalArgumentException("Identical package mapping detected: " + from + " -> " + to);
-        for (String key : mappingWithSeps.keySet()) {
-            if (key.contains(from)) throw new IllegalArgumentException("Package " + from + " is substring of package " + key);
-            if (from.contains(key)) throw new IllegalArgumentException("Package " + key + " is substring of package " + from);
-        }
-        if (mappingWithSeps.size() > MAX_MAPPINGS) throw new IllegalStateException("Packages mapping count exceeded value " + MAX_MAPPINGS);
-        mappingWithSeps.put(from, to);
-        mappingWithDots.put(from.replace(SEP, DOT), to.replace(SEP, DOT));
-    }
-
-    private static void safeClose(final Closeable c) {
-        try {
-            if (c != null) c.close();
-        } catch (final Throwable ignored) {}
-    }
+    protected abstract ArchiveTransformer buildInternal() throws IOException;
 
 }

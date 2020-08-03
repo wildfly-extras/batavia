@@ -21,13 +21,15 @@ import static org.wildfly.transformer.nodeps.ClassFileUtils.*;
 import static org.wildfly.transformer.nodeps.OpcodeUtils.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.Config;
+import org.wildfly.transformer.ResourceTransformer;
 
 /**
  * Class file transformer.
@@ -35,7 +37,7 @@ import org.wildfly.transformer.Transformer;
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
-final class TransformerImpl implements Transformer {
+final class ResourceTransformerImpl extends ResourceTransformer {
 
     private static final Resource[] EMPTY_ARRAY = new Resource[0];
     private static final String CLASS_SUFFIX = ".class";
@@ -44,41 +46,14 @@ final class TransformerImpl implements Transformer {
     private static final String OUR_PACKAGE;
 
     static {
-        final String ourClass = TransformerImpl.class.getName().replace(".", "/");
+        final String ourClass = ResourceTransformerImpl.class.getName().replace(".", "/");
         OUR_PACKAGE = ourClass.substring(0, ourClass.lastIndexOf('/') + 1);
     }
 
-    /**
-     * Debugging support.
-     */
-    private static final boolean DEBUG = Boolean.getBoolean(TransformerImpl.class.getName() + ".debug");
-
-    /**
-     * Packages mapping with '/' char.
-     */
-    final Map<String, String> mappingWithSeps;
-
-    /**
-     * Packages mapping with '.' char.
-     */
-    final Map<String, String> mappingWithDots;
-
     final Utf8InfoMapping utf8Mapping;
 
-    /**
-     * Keeps track of already generated utility classes. The mapping here is: <code>targetPackage->generatedClassName</code>.
-     */
-    private final ConcurrentMap<String, String> generatedUtilityClasses = new ConcurrentHashMap<>();
-
-    /**
-     * Constructor.
-     *
-     * @param mappingWithSeps packages mapping in path separator form
-     * @param mappingWithDots packages mapping in dot form
-     */
-    TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
-        this.mappingWithSeps = mappingWithSeps;
-        this.mappingWithDots =  mappingWithDots;
+    ResourceTransformerImpl(final Map<Config, String> configs, final boolean verbose) throws IOException {
+        super(configs, verbose);
         final int arraySize = mappingWithSeps.size() + mappingWithDots.size() + 1;
         final byte[][] mappingFrom = new byte[arraySize][];
         final byte[][] mappingTo = new byte[arraySize][];
@@ -213,7 +188,7 @@ final class TransformerImpl implements Transformer {
     }
 
     private static byte[] getResourceBytes(final String resourceName) {
-        return toByteArray(TransformerImpl.class.getClassLoader().getResourceAsStream(resourceName));
+        return toByteArray(ResourceTransformerImpl.class.getClassLoader().getResourceAsStream(resourceName));
     }
 
     /**
@@ -228,7 +203,7 @@ final class TransformerImpl implements Transformer {
      */
     private byte[] applyPatches(final byte[] oldClass, final Utf8InfoMapping utf8Mapping, final int newClassSize, final ClassFileRefs oldClassRefs,
                                 final Utf8ItemsPatch utf8ItemsPatch, final MethodsRedirectPatch methodsRedirectPatch, final AddMappingPatch applyMappingsPatch) {
-        if (DEBUG) {
+        if (verbose) {
             synchronized (System.out) {
                 System.out.println("[" + currentThread() + "] Patching class " + oldClassRefs.getThisClassAsString() + " - START");
             }
@@ -259,7 +234,7 @@ final class TransformerImpl implements Transformer {
             arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
             oldClassOffset += length;
             newClassOffset += length;
-            if (DEBUG) {
+            if (verbose) {
                 debugOldUtf8ItemOffset = oldClassOffset;
                 debugNewUtf8ItemOffset = newClassOffset;
             }
@@ -286,7 +261,7 @@ final class TransformerImpl implements Transformer {
             arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
             oldClassOffset += length;
             newClassOffset += length;
-            if (DEBUG) {
+            if (verbose) {
                 synchronized (System.out) {
                     System.out.println("[" + currentThread() + "] Patching UTF-8 constant pool item on position: " + utf8ItemPatch[0]);
                     debugOldUtf8ItemLength = readUnsignedShort(oldClass, debugOldUtf8ItemOffset - 2);
@@ -329,7 +304,7 @@ final class TransformerImpl implements Transformer {
             arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
             oldClassOffset += length;
             newClassOffset += length;
-            if (DEBUG) {
+            if (verbose) {
                 debugOldCodeAttributeCodeOffset = oldClassOffset;
                 debugNewCodeAttributeCodeOffset = newClassOffset;
             }
@@ -360,7 +335,7 @@ final class TransformerImpl implements Transformer {
             arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
             oldClassOffset += length;
             newClassOffset += length;
-            if (DEBUG) {
+            if (verbose) {
                 synchronized (System.out) {
                     System.out.println("[" + currentThread() + "] Patching method implementation '" + oldClassRefs.getConstantPool().getUtf8AsString(methodInfo.getNameIndex()) + "' on position: " + methodPatch[0]);
                     debugOldCodeAttributeCodeLength = readUnsignedInt(oldClass, debugOldCodeAttributeCodeOffset - 4);
@@ -378,7 +353,7 @@ final class TransformerImpl implements Transformer {
         // copy remaining class byte code
         arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, oldClass.length - oldClassOffset);
 
-        if (DEBUG) {
+        if (verbose) {
             synchronized (System.out) {
                 System.out.println("[" + currentThread() + "] Patching class " + oldClassRefs.getThisClassAsString() + " - END");
             }

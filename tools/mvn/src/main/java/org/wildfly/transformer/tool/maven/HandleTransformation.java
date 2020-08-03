@@ -15,7 +15,10 @@
  */
 package org.wildfly.transformer.tool.maven;
 
-import static org.wildfly.transformer.tool.api.ToolUtils.*;
+import org.wildfly.transformer.ArchiveTransformer;
+import org.wildfly.transformer.Config;
+import org.wildfly.transformer.TransformerBuilder;
+import org.wildfly.transformer.TransformerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +30,8 @@ import java.io.IOException;
  * @author Scott Marlow
  */
 final class HandleTransformation {
+
+    public static final String JAR_FILE_EXT = ".jar";
 
     /**
      * Transform the files contained under the folder path specified.
@@ -40,29 +45,27 @@ final class HandleTransformation {
         for (File sourceFile : files) {
             if (sourceFile.isDirectory()) {
                 transformDirectory(sourceFile, packagesMappingFile);
-            } else if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-                transformClassFile(sourceFile, sourceFile.getParentFile(), packagesMappingFile);
             } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-                transformJarFile(sourceFile, sourceFile.getParentFile(), packagesMappingFile);
+                transformFile(sourceFile, new File(sourceFile.getParentFile(), sourceFile.getName() + ".transformed"), packagesMappingFile);
             }
         }
     }
 
-    static void transformFile(final File sourceFile, final File targetDir, final String packagesMappingFile) throws IOException {
+    static void transformFile(final File sourceFile, final File targetFile, final String packagesMappingFile) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
         }
-        if (!sourceFile.getName().endsWith(CLASS_FILE_EXT) && !sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            throw new IllegalArgumentException("Supported file extensions are " + CLASS_FILE_EXT + " or " + JAR_FILE_EXT + " : " + sourceFile.getAbsolutePath());
+        if (!sourceFile.getName().endsWith(JAR_FILE_EXT)) {
+            throw new IllegalArgumentException("Supported file extensions are " + JAR_FILE_EXT + " : " + sourceFile.getAbsolutePath());
         }
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("Couldn't find file " + sourceFile.getAbsolutePath());
         }
-
-        if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-            transformClassFile(sourceFile, targetDir, packagesMappingFile);
-        } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            transformJarFile(sourceFile, targetDir, packagesMappingFile);
+        if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
+            TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
+            builder.setConfiguration(Config.PACKAGES_MAPPING, packagesMappingFile);
+            ArchiveTransformer transformer = builder.build();
+            transformer.transform(sourceFile, targetFile);
         }
     }
 

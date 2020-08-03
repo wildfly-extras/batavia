@@ -55,6 +55,7 @@
     <properties>
         <version.junit>4.12</version.junit>
         <version.org.ow2.asm>7.3.1</version.org.ow2.asm>
+        <version.org.eclipse.transformer>0.2.0-SNAPSHOT</version.org.eclipse.transformer>
         <version.maven.core>3.6.3</version.maven.core>
         <version.maven.plugin.annotations>3.6.0</version.maven.plugin.annotations>
         <version.maven.plugin.api>2.0</version.maven.plugin.api>
@@ -84,6 +85,11 @@
                 <version>${version.maven.plugin.annotations}</version>
             </dependency>
             <dependency>
+                <groupId>org.eclipse.transformer</groupId>
+                <artifactId>org.eclipse.transformer</artifactId>
+                <version>${version.org.eclipse.transformer}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm</artifactId>
                 <version>${version.org.ow2.asm}</version>
@@ -101,11 +107,6 @@
             <dependency>
                 <groupId>org.wildfly-extras</groupId>
                 <artifactId>no-dependencies-transformer</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.wildfly-extras</groupId>
-                <artifactId>transformer-tools-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

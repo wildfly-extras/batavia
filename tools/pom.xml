@@ -32,7 +32,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>api</module>
         <module>cli</module>
         <module>mvn</module>
     </modules>

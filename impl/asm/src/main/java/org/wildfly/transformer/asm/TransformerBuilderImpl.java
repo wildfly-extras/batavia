@@ -15,10 +15,12 @@
  */
 package org.wildfly.transformer.asm;
 
+import java.io.IOException;
 import java.util.Map;
 
+import org.wildfly.transformer.ArchiveTransformer;
 import org.wildfly.transformer.TransformerBuilder;
-import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.ResourceTransformer;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
@@ -26,8 +28,8 @@ import org.wildfly.transformer.Transformer;
 final class TransformerBuilderImpl extends TransformerBuilder {
 
     @Override
-    public Transformer newInstance(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
-        return new TransformerImpl(mappingWithSeps, mappingWithDots);
+    protected ArchiveTransformer buildInternal() throws IOException {
+        return new ArchiveTransformerImpl(configs, verbose != null ? verbose : false);
     }
 
 }
