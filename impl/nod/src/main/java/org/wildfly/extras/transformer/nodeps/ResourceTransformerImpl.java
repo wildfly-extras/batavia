@@ -124,7 +124,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         if (utf8ItemsPatch != null) diffInBytes += utf8ItemsPatch.diffInBytes;
         MethodsRedirectPatch methodsRedirectPatch = null;
         if (!transformedClassName.startsWith(OUR_PACKAGE)) {
-            methodsRedirectPatch = MethodsRedirectPatch.of(clazz, cfRefs);
+            methodsRedirectPatch = MethodsRedirectPatch.of(clazz, cfRefs, utf8Mapping);
             if (methodsRedirectPatch != null) diffInBytes += methodsRedirectPatch.diffInBytes;
         }
 

@@ -47,7 +47,7 @@ final class MethodsRedirectPatch {
         }
     }
 
-    private static UtilityClasses generateUtilityClassNames(final byte[] clazz, final ClassFileRefs cfRefs, final int[] matches, final int matchesCount) {
+    private static UtilityClasses generateUtilityClassNames(final byte[] clazz, final ClassFileRefs cfRefs, final int[] matches, final int matchesCount, final Utf8InfoMapping utf8Mapping) {
         // Temporary mapping tables (will contain white spaces) - they will be used later for creation of final mapping tables
         final byte[][] tempFrom = new byte[matches.length][];
         final byte[][] tempTo = new byte[matches.length][];
@@ -58,12 +58,19 @@ final class MethodsRedirectPatch {
         int countOfGeneratedClasses = 0;
         int classPoolIndex = cfRefs.getConstantPool().getSize() + matchesCount * 4;
         boolean utilClassExists;
+        // Construct current class name that is being processed (includes all path separators)
+        final ConstantPoolRefs cpRefs = cfRefs.getConstantPool();
+        final int classNameLength = cpRefs.getUtf8_Length(cpRefs.getClass_NameIndex(cfRefs.getThisClassIndex()));
+        final int classNameBytesRef = cpRefs.getUtf8_BytesRef(cpRefs.getClass_NameIndex(cfRefs.getThisClassIndex()));
+        byte[] processedClassName = new byte[classNameLength];
+        System.arraycopy(clazz, classNameBytesRef, processedClassName, 0, classNameLength);
+        processedClassName = renameClass(processedClassName, utf8Mapping);
 
         for (int i = 0; i < matches.length; i++) {
             if (matches[i] != 0) {
                 // found method call we are interested in
                 oldUtilityClassName = MethodRedirection.MAPPING[i][1].className;
-                newUtilityClassName = renameUtilityClassName(clazz, cfRefs, oldUtilityClassName);
+                newUtilityClassName = renameUtilityClassName(processedClassName, oldUtilityClassName);
 
                 for (int j = 0; j < tempTo.length; j++) {
                     // searching whether generated class name already exists in registry of all generated classes
@@ -99,25 +106,47 @@ final class MethodsRedirectPatch {
         return new UtilityClasses(utilClassesRefactoring, generatedClassPoolIndices);
     }
 
-    private static int getLastPathSeparatorIndex(final byte[] buffer) {
-        return getLastPathSeparatorIndex(buffer, 0, buffer.length);
+    private static byte[] renameClass(final byte[] oldClassName, final Utf8InfoMapping mapping) {
+        byte[] retVal = oldClassName;
+        int mappingIndex;
+
+        for (int i = 0; i <= oldClassName.length - mapping.min; i++) {
+            for (int j = 1; j < mapping.from.length; j++) {
+                if (oldClassName.length - i < mapping.from[j].length) continue;
+                mappingIndex = j;
+                for (int k = 0; k < mapping.from[j].length; k++) {
+                    if (oldClassName[i + k] != mapping.from[j][k]) {
+                        mappingIndex = 0;
+                        break;
+                    }
+                }
+                if (mappingIndex != 0) {
+                    retVal = new byte[retVal.length - mapping.from[mappingIndex].length + mapping.to[mappingIndex].length];
+                    System.arraycopy(mapping.to[mappingIndex], 0, retVal, 0, mapping.to[mappingIndex].length);
+                    System.arraycopy(oldClassName, mapping.from[mappingIndex].length, retVal, mapping.to[mappingIndex].length, oldClassName.length - mapping.from[mappingIndex].length);
+                    break;
+                }
+            }
+        }
+
+        return retVal;
     }
 
-    private static int getLastPathSeparatorIndex(final byte[] buffer, final int off, final int len) {
-        for (int i = off + len - 1; i >= off; i--) {
+    private static int getLastPathSeparatorIndex(final byte[] buffer) {
+        for (int i = buffer.length - 1; i >= 0; i--) {
             if (buffer[i] == '/') return i;
         }
         return -1;
     }
 
-    static MethodsRedirectPatch of(final byte[] clazz, final ClassFileRefs cfRefs) {
+    static MethodsRedirectPatch of(final byte[] clazz, final ClassFileRefs cfRefs, final Utf8InfoMapping utf8Mapping) {
         final int[] matches = getMatches(cfRefs.getConstantPool());
         if (matches == null) return null; // no method matches
         // count method matches
         int matchesCount = 0;
         for (int i = 0; i < matches.length; i++) if (matches[i] != 0) matchesCount++;
         // generate transformation utility full class names
-        final UtilityClasses utilClasses = generateUtilityClassNames(clazz, cfRefs, matches, matchesCount);
+        final UtilityClasses utilClasses = generateUtilityClassNames(clazz, cfRefs, matches, matchesCount, utf8Mapping);
         // count patch size
         final int patchSize = getPoolEndPatchSize(matches, matchesCount, utilClasses);
         final byte[] poolEndPatch = new byte[patchSize];
@@ -234,20 +263,17 @@ final class MethodsRedirectPatch {
         return patchSize;
     }
 
-    private static byte[] renameUtilityClassName(final byte[] clazz, final ClassFileRefs cfRefs, final byte[] oldUtilityClassName) {
+    private static byte[] renameUtilityClassName(final byte[] processedClassName, final byte[] oldUtilityClassName) {
         // first - detect package name length of current class being processed (includes all path separators)
-        final ConstantPoolRefs cpRefs = cfRefs.getConstantPool();
-        final int classNameLength = cpRefs.getUtf8_Length(cpRefs.getClass_NameIndex(cfRefs.getThisClassIndex()));
-        final int classNameBytesRef = cpRefs.getUtf8_BytesRef(cpRefs.getClass_NameIndex(cfRefs.getThisClassIndex()));
-        final int packageLastPS = getLastPathSeparatorIndex(clazz, classNameBytesRef, classNameLength);
-        final int packageLength = (packageLastPS == -1 ? 0 : packageLastPS - classNameBytesRef);
+        final int packageLastPS = getLastPathSeparatorIndex(processedClassName);
+        final int packageLength = packageLastPS == -1 ? 0 : packageLastPS + 1;
         // second - detect future (after rename) utility full class name length
         final int oldUtilityClassNameLastPS = getLastPathSeparatorIndex(oldUtilityClassName);
         final int oldUtilityClassSimpleNameLength = oldUtilityClassNameLastPS == -1 ? oldUtilityClassName.length : oldUtilityClassName.length - oldUtilityClassNameLastPS - 1;
         final byte[] newUtilityClassName = new byte[packageLength + oldUtilityClassSimpleNameLength];
         // third - copy package name & utility simple class name
         if (packageLength > 0) {
-            System.arraycopy(clazz, classNameBytesRef, newUtilityClassName, 0, packageLength);
+            System.arraycopy(processedClassName, 0, newUtilityClassName, 0, packageLength);
         }
         System.arraycopy(oldUtilityClassName, oldUtilityClassNameLastPS + 1, newUtilityClassName, packageLength, oldUtilityClassSimpleNameLength);
         // finally - return renamed utility class name (its package have been renamed to package of current class being processed)
