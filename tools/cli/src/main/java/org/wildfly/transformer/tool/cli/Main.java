@@ -15,7 +15,10 @@
  */
 package org.wildfly.transformer.tool.cli;
 
-import static org.wildfly.transformer.tool.api.ToolUtils.*;
+import org.wildfly.transformer.ArchiveTransformer;
+import org.wildfly.transformer.Config;
+import org.wildfly.transformer.TransformerBuilder;
+import org.wildfly.transformer.TransformerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +32,8 @@ import java.io.IOException;
 public final class Main {
 
     private static final String PACKAGES_MAPPING_OPTION = "--packages-mapping=";
+    private static final String PER_CLASS_MAPPING_OPTION = "--per-class-mapping=";
+    private static final String TEXT_FILES_MAPPING_OPTION = "--text-files-mapping=";
 
     public static void main(final String... args) throws IOException {
         if (!validParameters(args)) {
@@ -36,19 +41,36 @@ public final class Main {
             System.exit(1);
         }
 
-        final String packagesMappingFile = args.length == 3 ? args[0].substring(PACKAGES_MAPPING_OPTION.length()) : null;
-        final File sourceFile = new File(args.length == 3 ? args[1] : args[0]);
-        final File targetFile = new File(args.length == 3 ? args[2] : args[1]);
-        if (sourceFile.getName().endsWith(CLASS_FILE_EXT)) {
-            transformClassFile(sourceFile, targetFile, packagesMappingFile);
-        } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            transformJarFile(sourceFile, targetFile, packagesMappingFile);
+        final TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
+        if (args.length > 2) {
+            for (int i = 0; i < args.length - 2; i++) {
+                if (args[i].startsWith(PACKAGES_MAPPING_OPTION)) {
+                    builder.setConfiguration(Config.PACKAGES_MAPPING, args[i].substring(PACKAGES_MAPPING_OPTION.length()));
+                } else if (args[i].startsWith(PER_CLASS_MAPPING_OPTION)) {
+                    builder.setConfiguration(Config.PER_CLASS_MAPPING, args[i].substring(PER_CLASS_MAPPING_OPTION.length()));
+                } else if (args[i].startsWith(TEXT_FILES_MAPPING_OPTION)) {
+                    builder.setConfiguration(Config.TEXT_FILES_MAPPING, args[i].substring(TEXT_FILES_MAPPING_OPTION.length()));
+                }
+            }
+        }
+        final ArchiveTransformer archiveTransformer = builder.build();
+        final File sourceArchive = new File(args[args.length - 2]);
+        final File targetArchive = new File(args[args.length - 1]);
+        final boolean transformed = archiveTransformer.transform(sourceArchive, targetArchive);
+        if (transformed) {
+            System.out.println("Archive " + args[args.length - 2] + " was transformed to " + args[args.length - 1] + " according to given transformation rules.");
+        } else {
+            System.out.println("Archive " + args[args.length - 2] + " was copied to " + args[args.length - 1] + ". No transformation rule was applicable.");
         }
     }
 
     private static boolean validParameters(final String... args) {
-        if (args == null || args.length < 2 || args.length > 3) {
+        if (args == null || args.length < 2) {
             System.err.println("At least 2 arguments are required");
+            return false;
+        }
+        if (args.length > 5) {
+            System.err.println("Maximum 5 arguments can be specified");
             return false;
         }
         for (String arg : args) {
@@ -61,24 +83,47 @@ public final class Main {
                 return false;
             }
         }
-        if (args.length == 3) {
-            if (!args[0].startsWith(PACKAGES_MAPPING_OPTION)) {
-                System.err.println("Unknown option: " + args[0]);
+        if (args.length > 2) {
+            boolean packagesMappingDefined = false;
+            boolean perClassMappingDefined = false;
+            boolean textFilesMappingDefined = false;
+            for (int i = 0; i < args.length - 2; i++) {
+                if (args[i].startsWith(PACKAGES_MAPPING_OPTION)) {
+                    if (packagesMappingDefined) {
+                        System.err.println(PACKAGES_MAPPING_OPTION + " can be specified only once");
+                        return false;
+                    }
+                    packagesMappingDefined = true;
+                    continue;
+                }
+                if (args[i].startsWith(PER_CLASS_MAPPING_OPTION)) {
+                    if (perClassMappingDefined) {
+                        System.err.println(PER_CLASS_MAPPING_OPTION + " can be specified only once");
+                        return false;
+                    }
+                    perClassMappingDefined = true;
+                    continue;
+                }
+                if (args[i].startsWith(TEXT_FILES_MAPPING_OPTION)) {
+                    if (textFilesMappingDefined) {
+                        System.err.println(TEXT_FILES_MAPPING_OPTION + " can be specified only once");
+                        return false;
+                    }
+                    textFilesMappingDefined = true;
+                    continue;
+                }
+                System.err.println("Unknown option: " + args[i]);
                 return false;
             }
         }
-        final File sourceFile = new File(args.length == 2 ? args[0] : args[1]);
-        if (!sourceFile.getName().endsWith(CLASS_FILE_EXT) && !sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            System.err.println("Supported file extensions are " + CLASS_FILE_EXT + " or " + JAR_FILE_EXT + " : " + sourceFile.getAbsolutePath());
-            return false;
-        }
+        final File sourceFile = new File(args[args.length - 2]);
         if (!sourceFile.exists()) {
-            System.err.println("Couldn't find file " + sourceFile.getAbsolutePath());
+            System.err.println("Source archive doesn't exist: " + sourceFile.getAbsolutePath());
             return false;
         }
-        final File targetFile = new File(args.length == 2 ? args[1] : args[2]);
-        if (!targetFile.isDirectory()) {
-            System.err.println("output directory does not exist " + targetFile.getAbsolutePath());
+        final File targetFile = new File(args[args.length - 1]);
+        if (targetFile.exists()) {
+            System.err.println("Target archive exists: " + targetFile.getAbsolutePath());
             return false;
         }
         return true;
@@ -86,19 +131,22 @@ public final class Main {
 
     private static void printUsage() {
         System.err.println();
-        System.err.println("Usage: " + Main.class.getName() + " [-option] source.class target.dir");
-        System.err.println("       (to transform a class)");
-        System.err.println("   or  " + Main.class.getName() + " [-option] source.jar target.dir");
-        System.err.println("       (to transform a jar file)");
+        System.err.println("Usage: " + Main.class.getName() + " [options] source.archive target.archive");
         System.err.println("");
         System.err.println("Where options include:");
         System.err.println("   " + PACKAGES_MAPPING_OPTION + "<config>");
         System.err.println("              If this parameter is not specified on the command line");
         System.err.println("              default packages mapping configuration will be used");
+        System.err.println("   " + PER_CLASS_MAPPING_OPTION + "<config>");
+        System.err.println("              If this parameter is not specified on the command line");
+        System.err.println("              default per class mapping configuration will be used");
+        System.err.println("   " + TEXT_FILES_MAPPING_OPTION + "<config>");
+        System.err.println("              If this parameter is not specified on the command line");
+        System.err.println("              default text files mapping configuration will be used");
         System.err.println("");
         System.err.println("Notes:");
-        System.err.println(" * source.class or source.jar must exist");
-        System.err.println(" * target.class or target.jar cannot exist");
+        System.err.println(" * source.archive must exist");
+        System.err.println(" * target.archive cannot exist");
     }
 
 }

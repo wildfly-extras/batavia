@@ -13,23 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.nodeps;
+package org.wildfly.transformer.eclipse;
 
-import java.io.IOException;
-import java.util.Map;
-
-import org.wildfly.transformer.ArchiveTransformer;
 import org.wildfly.transformer.TransformerBuilder;
-import org.wildfly.transformer.ResourceTransformer;
+import org.wildfly.transformer.TransformerFactory;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class TransformerBuilderImpl extends TransformerBuilder {
+public final class TransformerFactoryImpl extends TransformerFactory {
 
     @Override
-    protected ArchiveTransformer buildInternal() throws IOException {
-        return new ArchiveTransformerImpl(configs, verbose != null ? verbose : false);
+    public TransformerBuilder newTransformer() {
+        return new TransformerBuilderImpl();
     }
 
 }

@@ -13,23 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.nodeps;
-
-import java.io.IOException;
-import java.util.Map;
-
-import org.wildfly.transformer.ArchiveTransformer;
-import org.wildfly.transformer.TransformerBuilder;
-import org.wildfly.transformer.ResourceTransformer;
+package org.wildfly.transformer;
 
 /**
+ * Configuration types.
+ *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class TransformerBuilderImpl extends TransformerBuilder {
+public enum Config {
 
-    @Override
-    protected ArchiveTransformer buildInternal() throws IOException {
-        return new ArchiveTransformerImpl(configs, verbose != null ? verbose : false);
-    }
+    /**
+     * Defines packages remapping rules.
+     */
+    PACKAGES_MAPPING,
+    /**
+     * Allows to customize mapping per class file.
+     */
+    PER_CLASS_MAPPING,
+    /**
+     * Allows to customize mapping per text file.
+     */
+    TEXT_FILES_MAPPING
 
 }

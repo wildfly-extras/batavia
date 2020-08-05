@@ -13,23 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.transformer.nodeps;
+package org.wildfly.transformer.asm;
+
+import org.wildfly.transformer.ArchiveTransformer;
+import org.wildfly.transformer.ResourceTransformer;
+import org.wildfly.transformer.Config;
 
 import java.io.IOException;
 import java.util.Map;
 
-import org.wildfly.transformer.ArchiveTransformer;
-import org.wildfly.transformer.TransformerBuilder;
-import org.wildfly.transformer.ResourceTransformer;
-
 /**
- * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
-final class TransformerBuilderImpl extends TransformerBuilder {
+final class ArchiveTransformerImpl extends ArchiveTransformer {
+
+    ArchiveTransformerImpl(final Map<Config, String> configs, final boolean verbose) {
+        super(configs, verbose);
+    }
 
     @Override
-    protected ArchiveTransformer buildInternal() throws IOException {
-        return new ArchiveTransformerImpl(configs, verbose != null ? verbose : false);
+    protected ResourceTransformer newResourceTransformer() throws IOException {
+        return new ResourceTransformerImpl(configs, verbose);
     }
 
 }

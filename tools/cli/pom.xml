@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>org.wildfly-extras</groupId>
-            <artifactId>transformer-tools-api</artifactId>
+            <artifactId>transformer-api</artifactId>
         </dependency>
     </dependencies>
 

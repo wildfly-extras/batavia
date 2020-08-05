@@ -15,7 +15,6 @@
  */
 package org.wildfly.transformer.asm;
 
-
 import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.POP;
@@ -42,7 +41,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
-import org.wildfly.transformer.Transformer;
+import org.wildfly.transformer.Config;
+import org.wildfly.transformer.ResourceTransformer;
 
 /**
  * Transformer
@@ -55,8 +55,7 @@ import org.wildfly.transformer.Transformer;
  * @author Scott Marlow
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-final class TransformerImpl implements Transformer {
-
+final class ResourceTransformerImpl extends ResourceTransformer {
     private static final Resource[] EMPTY_ARRAY = new Resource[0];
     private static final String CLASS_SUFFIX = ".class";
     private static final int CLASS_SUFFIX_LENGTH = CLASS_SUFFIX.length(); 
@@ -73,13 +72,10 @@ final class TransformerImpl implements Transformer {
     
     private boolean classTransformed;
     private String changeClassName;
-    final Map<String, String> mappingWithSeps;
-    final Map<String, String> mappingWithDots;
     final Set<String> generatedReflectionModelHandlingCode = new CopyOnWriteArraySet<>();
 
-    TransformerImpl(final Map<String, String> mappingWithSeps, final Map<String, String> mappingWithDots) {
-        this.mappingWithSeps = mappingWithSeps;
-        this.mappingWithDots = mappingWithDots;
+    ResourceTransformerImpl(final Map<Config, String> configs, final boolean verbose) throws IOException {
+        super(configs, verbose);
     }
 
     /**

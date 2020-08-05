@@ -21,7 +21,8 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Resources transformer factory can be used concurrently by multiple threads as instances of this class are thread safe.
+ * Factory for creating <code>ArchiveTransformer</code> builders.
+ * Can be used concurrently by multiple threads as instances of this class are thread safe.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
