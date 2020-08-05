@@ -28,8 +28,8 @@
     </parent>
 
     <name>Javax to Jakarta Transformation Project</name>
-    <groupId>org.wildfly-extras</groupId>
-    <artifactId>batavia-parent</artifactId>
+    <groupId>org.wildfly.extras.batavia</groupId>
+    <artifactId>transformer-parent</artifactId>
     <version>1.0.0.Alpha1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -95,18 +95,23 @@
                 <version>${version.org.ow2.asm}</version>
             </dependency>
             <dependency>
-                <groupId>org.wildfly-extras</groupId>
+                <groupId>org.wildfly.extras.batavia</groupId>
                 <artifactId>transformer-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.wildfly-extras</groupId>
-                <artifactId>asm-based-transformer</artifactId>
+                <groupId>org.wildfly.extras.batavia</groupId>
+                <artifactId>transformer-impl-asm</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.wildfly-extras</groupId>
-                <artifactId>no-dependencies-transformer</artifactId>
+                <groupId>org.wildfly.extras.batavia</groupId>
+                <artifactId>transformer-impl-eclipse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wildfly.extras.batavia</groupId>
+                <artifactId>transformer-impl-nodeps</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

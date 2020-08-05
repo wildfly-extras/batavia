@@ -22,14 +22,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.wildfly-extras</groupId>
+        <groupId>org.wildfly.extras.batavia</groupId>
         <artifactId>transformer-impl-parent</artifactId>
         <version>1.0.0.Alpha1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <name>Eclipse Transformer</name>
-    <artifactId>eclipse-transformer</artifactId>
+    <artifactId>transformer-impl-eclipse</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -38,7 +38,7 @@
             <artifactId>org.eclipse.transformer</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly-extras</groupId>
+            <groupId>org.wildfly.extras.batavia</groupId>
             <artifactId>transformer-api</artifactId>
         </dependency>
     </dependencies>

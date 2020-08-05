@@ -21,7 +21,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.wildfly-extras</groupId>
+        <groupId>org.wildfly.extras.batavia</groupId>
         <artifactId>transformer-tools-parent</artifactId>
         <version>1.0.0.Alpha1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -33,7 +33,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.wildfly-extras</groupId>
+            <groupId>org.wildfly.extras.batavia</groupId>
             <artifactId>transformer-api</artifactId>
         </dependency>
     </dependencies>
