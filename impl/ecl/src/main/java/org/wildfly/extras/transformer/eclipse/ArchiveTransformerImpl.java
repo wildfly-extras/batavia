@@ -35,7 +35,7 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
     public static final String DEFAULT_RENAMES_REFERENCE = "jakarta-renames.properties";
     public static final String DEFAULT_MASTER_TXT_REFERENCE = "jakarta-txt-master.properties";
     public static final String DEFAULT_PER_CLASS_DIRECT_REFERENCE = "jakarta-per-class.properties";
-    // public static final String DEFAULT_DIRECT_REFERENCE = "jakarta-direct.properties"; TODO: is this needed? If yes, provide configuration option in builder
+    public static final String DEFAULT_DIRECT_REFERENCE = "jakarta-direct.properties";
 
     ArchiveTransformerImpl(final Map<Config, String> configs, final boolean verbose) {
         super(configs, verbose);
@@ -46,7 +46,7 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
         optionDefaults.put(Transformer.AppOption.RULES_RENAMES, configs.containsKey(Config.PACKAGES_MAPPING) ? configs.get(Config.PACKAGES_MAPPING) : DEFAULT_RENAMES_REFERENCE);
         optionDefaults.put(Transformer.AppOption.RULES_MASTER_TEXT, configs.containsKey(Config.TEXT_FILES_MAPPING) ? configs.get(Config.TEXT_FILES_MAPPING) : DEFAULT_MASTER_TXT_REFERENCE);
         optionDefaults.put(Transformer.AppOption.RULES_PER_CLASS_CONSTANT, configs.containsKey(Config.PER_CLASS_MAPPING) ? configs.get(Config.PER_CLASS_MAPPING) : DEFAULT_PER_CLASS_DIRECT_REFERENCE);
-        // optionDefaults.put(Transformer.AppOption.RULES_DIRECT, DEFAULT_DIRECT_REFERENCE); TODO: is this needed? If yes, provide configuration option in builder
+        optionDefaults.put(Transformer.AppOption.RULES_DIRECT, DEFAULT_DIRECT_REFERENCE); //TODO: provide configuration option in builder
         return optionDefaults;
     }
 
