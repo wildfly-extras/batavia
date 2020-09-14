@@ -15,6 +15,11 @@
  */
 package org.wildfly.extras.transformer.eclipse;
 
+import static org.eclipse.transformer.Transformer.AppOption.RULES_DIRECT;
+import static org.eclipse.transformer.Transformer.AppOption.RULES_MASTER_TEXT;
+import static org.eclipse.transformer.Transformer.AppOption.RULES_PER_CLASS_CONSTANT;
+import static org.eclipse.transformer.Transformer.AppOption.RULES_RENAMES;
+
 import org.eclipse.transformer.action.Changes;
 import org.eclipse.transformer.Transformer;
 import org.wildfly.extras.transformer.ArchiveTransformer;
@@ -34,7 +39,7 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
 
     public static final String DEFAULT_RENAMES_REFERENCE = "jakarta-renames.properties";
     public static final String DEFAULT_MASTER_TXT_REFERENCE = "jakarta-txt-master.properties";
-    public static final String DEFAULT_PER_CLASS_DIRECT_REFERENCE = "jakarta-per-class.properties";
+    public static final String DEFAULT_PER_CLASS_REFERENCE = "jakarta-per-class.properties";
     public static final String DEFAULT_DIRECT_REFERENCE = "jakarta-direct.properties";
 
     ArchiveTransformerImpl(final Map<Config, String> configs, final boolean verbose) {
@@ -43,10 +48,10 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
 
     private Map<Transformer.AppOption, String> getOptionDefaults() {
         final HashMap<Transformer.AppOption, String> optionDefaults = new HashMap<>();
-        optionDefaults.put(Transformer.AppOption.RULES_RENAMES, configs.containsKey(Config.PACKAGES_MAPPING) ? configs.get(Config.PACKAGES_MAPPING) : DEFAULT_RENAMES_REFERENCE);
-        optionDefaults.put(Transformer.AppOption.RULES_MASTER_TEXT, configs.containsKey(Config.TEXT_FILES_MAPPING) ? configs.get(Config.TEXT_FILES_MAPPING) : DEFAULT_MASTER_TXT_REFERENCE);
-        optionDefaults.put(Transformer.AppOption.RULES_PER_CLASS_CONSTANT, configs.containsKey(Config.PER_CLASS_MAPPING) ? configs.get(Config.PER_CLASS_MAPPING) : DEFAULT_PER_CLASS_DIRECT_REFERENCE);
-        optionDefaults.put(Transformer.AppOption.RULES_DIRECT, DEFAULT_DIRECT_REFERENCE); //TODO: provide configuration option in builder
+        optionDefaults.put(RULES_RENAMES, DEFAULT_RENAMES_REFERENCE);
+        optionDefaults.put(RULES_MASTER_TEXT, DEFAULT_MASTER_TXT_REFERENCE);
+        optionDefaults.put(RULES_PER_CLASS_CONSTANT, DEFAULT_PER_CLASS_REFERENCE);
+        optionDefaults.put(RULES_DIRECT, DEFAULT_DIRECT_REFERENCE);
         return optionDefaults;
     }
 
@@ -59,6 +64,22 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
                 System.setProperty("org.slf4j.simpleLogger.log.Transformer", "error");
             }
             List<String> args = new ArrayList<>();
+            if (configs.containsKey(Config.PACKAGES_MAPPING)) {
+                args.add("-tr");
+                args.add(configs.get(Config.PACKAGES_MAPPING));
+            }
+            if (configs.containsKey(Config.TEXT_FILES_MAPPING)) {
+                args.add("-tf");
+                args.add(configs.get(Config.TEXT_FILES_MAPPING));
+            }
+            if (configs.containsKey(Config.PER_CLASS_MAPPING)) {
+                args.add("-tp");
+                args.add(configs.get(Config.PER_CLASS_MAPPING));
+            }
+            if (configs.containsKey(Config.DIRECT_MAPPING)) {
+                args.add("-td");
+                args.add(configs.get(Config.DIRECT_MAPPING));
+            }
             args.add(inJarFile.getAbsolutePath());
             args.add(outJarFile.getAbsolutePath());
             if (verbose) {

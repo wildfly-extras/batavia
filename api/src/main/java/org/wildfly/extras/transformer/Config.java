@@ -31,8 +31,12 @@ public enum Config {
      */
     PER_CLASS_MAPPING,
     /**
-     * Allows to customize mapping per text file.
+     * Allows to customize mapping per text file type.
      */
-    TEXT_FILES_MAPPING
+    TEXT_FILES_MAPPING,
+    /**
+     * Exact UTF-8 constant updates in class file constant pool.
+     */
+    DIRECT_MAPPING
 
 }
