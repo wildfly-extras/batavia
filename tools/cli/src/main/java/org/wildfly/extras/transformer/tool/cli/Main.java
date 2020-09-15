@@ -34,6 +34,7 @@ public final class Main {
     private static final String PACKAGES_MAPPING_OPTION = "--packages-mapping=";
     private static final String PER_CLASS_MAPPING_OPTION = "--per-class-mapping=";
     private static final String TEXT_FILES_MAPPING_OPTION = "--text-files-mapping=";
+    private static final String DIRECT_MAPPING_OPTION = "--direct-mapping=";
 
     public static void main(final String... args) throws IOException {
         if (!validParameters(args)) {
@@ -50,6 +51,8 @@ public final class Main {
                     builder.setConfiguration(Config.PER_CLASS_MAPPING, args[i].substring(PER_CLASS_MAPPING_OPTION.length()));
                 } else if (args[i].startsWith(TEXT_FILES_MAPPING_OPTION)) {
                     builder.setConfiguration(Config.TEXT_FILES_MAPPING, args[i].substring(TEXT_FILES_MAPPING_OPTION.length()));
+                } else if (args[i].startsWith(DIRECT_MAPPING_OPTION)) {
+                    builder.setConfiguration(Config.DIRECT_MAPPING, args[i].substring(DIRECT_MAPPING_OPTION.length()));
                 }
             }
         }
@@ -69,8 +72,8 @@ public final class Main {
             System.err.println("At least 2 arguments are required");
             return false;
         }
-        if (args.length > 5) {
-            System.err.println("Maximum 5 arguments can be specified");
+        if (args.length > 6) {
+            System.err.println("Maximum 6 arguments can be specified");
             return false;
         }
         for (String arg : args) {
@@ -87,7 +90,16 @@ public final class Main {
             boolean packagesMappingDefined = false;
             boolean perClassMappingDefined = false;
             boolean textFilesMappingDefined = false;
+            boolean directMappingDefined = false;
             for (int i = 0; i < args.length - 2; i++) {
+                if (args[i].startsWith(DIRECT_MAPPING_OPTION)) {
+                    if (directMappingDefined) {
+                        System.err.println(DIRECT_MAPPING_OPTION + " can be specified only once");
+                        return false;
+                    }
+                    directMappingDefined = true;
+                    continue;
+                }
                 if (args[i].startsWith(PACKAGES_MAPPING_OPTION)) {
                     if (packagesMappingDefined) {
                         System.err.println(PACKAGES_MAPPING_OPTION + " can be specified only once");
@@ -143,6 +155,9 @@ public final class Main {
         System.err.println("   " + TEXT_FILES_MAPPING_OPTION + "<config>");
         System.err.println("              If this parameter is not specified on the command line");
         System.err.println("              default text files mapping configuration will be used");
+        System.err.println("   " + DIRECT_MAPPING_OPTION + "<config>");
+        System.err.println("              If this parameter is not specified on the command line");
+        System.err.println("              default direct utf-8 mapping configuration will be used");
         System.err.println("");
         System.err.println("Notes:");
         System.err.println(" * source.archive must exist");
