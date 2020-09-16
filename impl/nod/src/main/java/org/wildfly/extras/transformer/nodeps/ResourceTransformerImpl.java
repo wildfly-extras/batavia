@@ -18,13 +18,13 @@ package org.wildfly.extras.transformer.nodeps;
 import static java.lang.System.arraycopy;
 import static java.lang.Thread.currentThread;
 
+import java.io.File;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
-import org.wildfly.extras.transformer.Config;
 import org.wildfly.extras.transformer.ResourceTransformer;
 
 /**
@@ -48,8 +48,8 @@ final class ResourceTransformerImpl extends ResourceTransformer {
 
     final Utf8InfoMapping utf8Mapping;
 
-    ResourceTransformerImpl(final Map<Config, String> configs, final boolean verbose) throws IOException {
-        super(configs, verbose);
+    ResourceTransformerImpl(final File configsDir, final boolean verbose) throws IOException {
+        super(configsDir, verbose);
         final int arraySize = mappingWithSeps.size() + mappingWithDots.size() + 1;
         final byte[][] mappingFrom = new byte[arraySize][];
         final byte[][] mappingTo = new byte[arraySize][];

@@ -15,12 +15,10 @@
  */
 package org.wildfly.extras.transformer;
 
-import java.io.IOException;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.Map;
-
 import static java.lang.Thread.currentThread;
+
+import java.io.File;
+import java.util.ConcurrentModificationException;
 
 /**
  * Resource transformer builder instance can be manipulated only by thread that created it.
@@ -29,8 +27,9 @@ import static java.lang.Thread.currentThread;
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
 public abstract class TransformerBuilder {
+
     private final Thread thread = currentThread();
-    protected final Map<Config, String> configs = new HashMap<>();
+    protected File configsDir;
     protected Boolean verbose;
     private boolean built;
 
@@ -39,27 +38,30 @@ public abstract class TransformerBuilder {
     }
 
     /**
-     * Adds custom configuration mapping defined in a configuration file.
+     * Sets directory where transformer specific external configuration files are located.
      * Once this method is called it turns off <i>default configuration mapping</i>
-     * and <i>user provided configuration</i> is used instead.
+     * and <i>user provided configuration</i> will be used instead.
      *
-     * @param configType configuration file type
-     * @param configLocation configuration file location on class path
+     * @param configsDir configuration files directory
      * @return this builder instance
      * @throws ConcurrentModificationException if this builder instance is used by multiple threads
      * @throws IllegalStateException if either {@link #build()} or this method (with given config type) have been already called
      * @throws IllegalArgumentException if method parameter is <code>null</code>
      * or if method parameter equals to <code>empty string</code>
+     * or if provided directory doesn't exist
+     * or if provided directory name doesn't point to directory
      */
-    public final TransformerBuilder setConfiguration(final Config configType, final String configLocation) {
+    public final TransformerBuilder setConfigsDir(final String configsDir) {
         // preconditions
         if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
         if (built) throw new IllegalStateException("Builder instance have been already closed");
-        if (configType == null) throw new IllegalArgumentException("Parameter cannot be null");
-        if (configLocation == null || "".equals(configLocation)) throw new IllegalArgumentException("Parameter cannot be neither null nor empty string");
-        if (configs.containsKey(configType)) throw new IllegalStateException("This method can be called only once for given configuration type");
+        if (configsDir == null) throw new IllegalArgumentException("Parameter cannot be null");
+        if ("".equals(configsDir)) throw new IllegalArgumentException("Parameter cannot be empty string");
+        final File configsDirFile = new File(configsDir);
+        if (!configsDirFile.exists()) throw new IllegalArgumentException("Directory '" + configsDir + "' doesn't exist");
+        if (!configsDirFile.isDirectory()) throw new IllegalArgumentException("Provided value '" + configsDir + "' is not directory");
         // implementation
-        configs.put(configType, configLocation);
+        this.configsDir = configsDirFile;
         return this;
     }
 
@@ -89,9 +91,8 @@ public abstract class TransformerBuilder {
      * if packages mapping count in configuration file surpasses value <code>65535</code>
      * @throws IllegalArgumentException if configuration file has invalid format or it contains identical package mapping
      * or if some package defined in one package mapping is a substring of package in another package mapping
-     * @throws IOException if configuration reading process failed with unexpected I/O error
      */
-    public final ArchiveTransformer build() throws IOException {
+    public final ArchiveTransformer build() {
         // preconditions
         if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
         if (built) throw new IllegalStateException("Builder instance have been already closed");
@@ -105,6 +106,6 @@ public abstract class TransformerBuilder {
      *
      * @return new transformer instance
      */
-    protected abstract ArchiveTransformer buildInternal() throws IOException;
+    protected abstract ArchiveTransformer buildInternal();
 
 }

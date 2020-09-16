@@ -20,6 +20,7 @@ import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.POP;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -41,7 +42,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 
-import org.wildfly.extras.transformer.Config;
 import org.wildfly.extras.transformer.ResourceTransformer;
 
 /**
@@ -74,8 +74,8 @@ final class ResourceTransformerImpl extends ResourceTransformer {
     private String changeClassName;
     final Set<String> generatedReflectionModelHandlingCode = new CopyOnWriteArraySet<>();
 
-    ResourceTransformerImpl(final Map<Config, String> configs, final boolean verbose) throws IOException {
-        super(configs, verbose);
+    ResourceTransformerImpl(final File configsDir, final boolean verbose) throws IOException {
+        super(configsDir, verbose);
     }
 
     /**

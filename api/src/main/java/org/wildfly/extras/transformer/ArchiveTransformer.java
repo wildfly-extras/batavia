@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Calendar;
 import java.util.Enumeration;
-import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
@@ -36,11 +35,11 @@ import java.util.jar.JarOutputStream;
  */
 public abstract class ArchiveTransformer {
 
-    protected final Map<Config, String> configs;
+    protected final File configsDir;
     protected final boolean verbose;
 
-    protected ArchiveTransformer(final Map<Config, String> configs, final boolean verbose) {
-        this.configs = configs;
+    protected ArchiveTransformer(final File configsDir, final boolean verbose) {
+        this.configsDir = configsDir;
         this.verbose = verbose;
     }
 

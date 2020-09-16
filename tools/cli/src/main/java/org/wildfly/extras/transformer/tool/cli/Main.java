@@ -17,7 +17,6 @@ package org.wildfly.extras.transformer.tool.cli;
 
 import org.wildfly.extras.transformer.TransformerBuilder;
 import org.wildfly.extras.transformer.ArchiveTransformer;
-import org.wildfly.extras.transformer.Config;
 import org.wildfly.extras.transformer.TransformerFactory;
 
 import java.io.File;
@@ -31,10 +30,7 @@ import java.io.IOException;
  */
 public final class Main {
 
-    private static final String PACKAGES_MAPPING_OPTION = "--packages-mapping=";
-    private static final String PER_CLASS_MAPPING_OPTION = "--per-class-mapping=";
-    private static final String TEXT_FILES_MAPPING_OPTION = "--text-files-mapping=";
-    private static final String DIRECT_MAPPING_OPTION = "--direct-mapping=";
+    private static final String CONFIGS_DIR = "--configs-dir=";
 
     public static void main(final String... args) throws IOException {
         if (!validParameters(args)) {
@@ -45,14 +41,8 @@ public final class Main {
         final TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
         if (args.length > 2) {
             for (int i = 0; i < args.length - 2; i++) {
-                if (args[i].startsWith(PACKAGES_MAPPING_OPTION)) {
-                    builder.setConfiguration(Config.PACKAGES_MAPPING, args[i].substring(PACKAGES_MAPPING_OPTION.length()));
-                } else if (args[i].startsWith(PER_CLASS_MAPPING_OPTION)) {
-                    builder.setConfiguration(Config.PER_CLASS_MAPPING, args[i].substring(PER_CLASS_MAPPING_OPTION.length()));
-                } else if (args[i].startsWith(TEXT_FILES_MAPPING_OPTION)) {
-                    builder.setConfiguration(Config.TEXT_FILES_MAPPING, args[i].substring(TEXT_FILES_MAPPING_OPTION.length()));
-                } else if (args[i].startsWith(DIRECT_MAPPING_OPTION)) {
-                    builder.setConfiguration(Config.DIRECT_MAPPING, args[i].substring(DIRECT_MAPPING_OPTION.length()));
+                if (args[i].startsWith(CONFIGS_DIR)) {
+                    builder.setConfigsDir(args[i].substring(CONFIGS_DIR.length()));
                 }
             }
         }
@@ -72,8 +62,8 @@ public final class Main {
             System.err.println("At least 2 arguments are required");
             return false;
         }
-        if (args.length > 6) {
-            System.err.println("Maximum 6 arguments can be specified");
+        if (args.length > 3) {
+            System.err.println("Maximum 3 arguments can be specified");
             return false;
         }
         for (String arg : args) {
@@ -87,41 +77,14 @@ public final class Main {
             }
         }
         if (args.length > 2) {
-            boolean packagesMappingDefined = false;
-            boolean perClassMappingDefined = false;
-            boolean textFilesMappingDefined = false;
-            boolean directMappingDefined = false;
+            boolean configsDirDefined = false;
             for (int i = 0; i < args.length - 2; i++) {
-                if (args[i].startsWith(DIRECT_MAPPING_OPTION)) {
-                    if (directMappingDefined) {
-                        System.err.println(DIRECT_MAPPING_OPTION + " can be specified only once");
+                if (args[i].startsWith(CONFIGS_DIR)) {
+                    if (configsDirDefined) {
+                        System.err.println(CONFIGS_DIR + " can be specified only once");
                         return false;
                     }
-                    directMappingDefined = true;
-                    continue;
-                }
-                if (args[i].startsWith(PACKAGES_MAPPING_OPTION)) {
-                    if (packagesMappingDefined) {
-                        System.err.println(PACKAGES_MAPPING_OPTION + " can be specified only once");
-                        return false;
-                    }
-                    packagesMappingDefined = true;
-                    continue;
-                }
-                if (args[i].startsWith(PER_CLASS_MAPPING_OPTION)) {
-                    if (perClassMappingDefined) {
-                        System.err.println(PER_CLASS_MAPPING_OPTION + " can be specified only once");
-                        return false;
-                    }
-                    perClassMappingDefined = true;
-                    continue;
-                }
-                if (args[i].startsWith(TEXT_FILES_MAPPING_OPTION)) {
-                    if (textFilesMappingDefined) {
-                        System.err.println(TEXT_FILES_MAPPING_OPTION + " can be specified only once");
-                        return false;
-                    }
-                    textFilesMappingDefined = true;
+                    configsDirDefined = true;
                     continue;
                 }
                 System.err.println("Unknown option: " + args[i]);
@@ -146,18 +109,9 @@ public final class Main {
         System.err.println("Usage: " + Main.class.getName() + " [options] source.archive target.archive");
         System.err.println("");
         System.err.println("Where options include:");
-        System.err.println("   " + PACKAGES_MAPPING_OPTION + "<config>");
+        System.err.println("   " + CONFIGS_DIR + "<directory>");
         System.err.println("              If this parameter is not specified on the command line");
-        System.err.println("              default packages mapping configuration will be used");
-        System.err.println("   " + PER_CLASS_MAPPING_OPTION + "<config>");
-        System.err.println("              If this parameter is not specified on the command line");
-        System.err.println("              default per class mapping configuration will be used");
-        System.err.println("   " + TEXT_FILES_MAPPING_OPTION + "<config>");
-        System.err.println("              If this parameter is not specified on the command line");
-        System.err.println("              default text files mapping configuration will be used");
-        System.err.println("   " + DIRECT_MAPPING_OPTION + "<config>");
-        System.err.println("              If this parameter is not specified on the command line");
-        System.err.println("              default direct utf-8 mapping configuration will be used");
+        System.err.println("              default mapping configurations will be used");
         System.err.println("");
         System.err.println("Notes:");
         System.err.println(" * source.archive must exist");

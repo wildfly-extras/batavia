@@ -15,8 +15,6 @@
  */
 package org.wildfly.extras.transformer.asm;
 
-import java.io.IOException;
-
 import org.wildfly.extras.transformer.TransformerBuilder;
 import org.wildfly.extras.transformer.ArchiveTransformer;
 
@@ -26,8 +24,8 @@ import org.wildfly.extras.transformer.ArchiveTransformer;
 final class TransformerBuilderImpl extends TransformerBuilder {
 
     @Override
-    protected ArchiveTransformer buildInternal() throws IOException {
-        return new ArchiveTransformerImpl(configs, verbose != null ? verbose : false);
+    protected ArchiveTransformer buildInternal() {
+        return new ArchiveTransformerImpl(configsDir, verbose != null ? verbose : false);
     }
 
 }

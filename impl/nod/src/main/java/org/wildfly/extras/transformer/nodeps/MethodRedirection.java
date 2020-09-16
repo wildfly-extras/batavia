@@ -30,6 +30,8 @@ final class MethodRedirection {
      */
     static final MethodDescriptor[][] MAPPING;
 
+    private static final String THIS_PACKAGE = MethodRedirection.class.getPackage().getName().replace(".", "/");
+
     static {
         MAPPING = new MethodDescriptor[9][2];
         int row = 0;
@@ -37,37 +39,37 @@ final class MethodRedirection {
         // Class static methods bijection
         /////
         MAPPING[row][0] = new MethodDescriptor(true, "java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "Class_forName", "(Ljava/lang/String;)Ljava/lang/Class;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "Class_forName", "(Ljava/lang/String;)Ljava/lang/Class;");
         row++;
         MAPPING[row][0] = new MethodDescriptor(true, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "Class_forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "Class_forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
         row++;
         /////
         // ClassLoader instance methods bijection
         /////
         MAPPING[row][0] = new MethodDescriptor(false, "java/lang/ClassLoader", "getResource", "(Ljava/lang/String;)Ljava/net/URL;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_getResource", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/net/URL;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_getResource", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/net/URL;");
         row++;
         MAPPING[row][0] = new MethodDescriptor(false, "java/lang/ClassLoader", "getResourceAsStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_getResourceAsStream", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/io/InputStream;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_getResourceAsStream", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/io/InputStream;");
         row++;
         MAPPING[row][0] = new MethodDescriptor(false, "java/lang/ClassLoader", "getResources", "(Ljava/lang/String;)Ljava/util/Enumeration;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_getResources", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/util/Enumeration;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_getResources", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/util/Enumeration;");
         row++;
         MAPPING[row][0] = new MethodDescriptor(false, "java/lang/ClassLoader", "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_loadClass", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_loadClass", "(Ljava/lang/ClassLoader;Ljava/lang/String;)Ljava/lang/Class;");
         row++;
         /////
         // ClassLoader static methods bijection
         /////
         MAPPING[row][0] = new MethodDescriptor(true, "java/lang/ClassLoader", "getSystemResource", "(Ljava/lang/String;)Ljava/net/URL;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_getSystemResource", "(Ljava/lang/String;)Ljava/net/URL;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_getSystemResource", "(Ljava/lang/String;)Ljava/net/URL;");
         row++;
         MAPPING[row][0] = new MethodDescriptor(true, "java/lang/ClassLoader", "getSystemResourceAsStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_getSystemResourceAsStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_getSystemResourceAsStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
         row++;
         MAPPING[row][0] = new MethodDescriptor(true, "java/lang/ClassLoader", "getSystemResources", "(Ljava/lang/String;)Ljava/util/Enumeration;");
-        MAPPING[row][1] = new MethodDescriptor(true, "org/wildfly/transformer/nodeps/JavaLangTransformUtils", "ClassLoader_getSystemResources", "(Ljava/lang/String;)Ljava/util/Enumeration;");
+        MAPPING[row][1] = new MethodDescriptor(true, THIS_PACKAGE + "/JavaLangTransformUtils", "ClassLoader_getSystemResources", "(Ljava/lang/String;)Ljava/util/Enumeration;");
         row++;
     }
 

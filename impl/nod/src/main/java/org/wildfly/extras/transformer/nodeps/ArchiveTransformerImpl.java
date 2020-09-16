@@ -17,23 +17,22 @@ package org.wildfly.extras.transformer.nodeps;
 
 import org.wildfly.extras.transformer.ResourceTransformer;
 import org.wildfly.extras.transformer.ArchiveTransformer;
-import org.wildfly.extras.transformer.Config;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * @author <a href="mailto:ropalka@redhat.com">Richard Opálka</a>
  */
 final class ArchiveTransformerImpl extends ArchiveTransformer {
 
-    ArchiveTransformerImpl(final Map<Config, String> configs, final boolean verbose) {
-        super(configs, verbose);
+    ArchiveTransformerImpl(final File configsDir, final boolean verbose) {
+        super(configsDir, verbose);
     }
 
     @Override
     protected ResourceTransformer newResourceTransformer() throws IOException {
-        return new ResourceTransformerImpl(configs, verbose);
+        return new ResourceTransformerImpl(configsDir, verbose);
     }
 
 }
