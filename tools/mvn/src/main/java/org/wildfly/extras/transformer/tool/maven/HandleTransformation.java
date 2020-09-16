@@ -15,7 +15,6 @@
  */
 package org.wildfly.extras.transformer.tool.maven;
 
-import org.wildfly.extras.transformer.Config;
 import org.wildfly.extras.transformer.TransformerBuilder;
 import org.wildfly.extras.transformer.TransformerFactory;
 import org.wildfly.extras.transformer.ArchiveTransformer;
@@ -38,20 +37,20 @@ final class HandleTransformation {
      * 
      * @param folder represents a filesystem path that contains files/subfolders to be transformed.
      */
-    static void transformDirectory(final File folder, final String packagesMappingFile) throws IOException {
+    static void transformDirectory(final File folder, final String configsDir) throws IOException {
         final File[] files = folder.listFiles();
         if (files == null) return;
 
         for (File sourceFile : files) {
             if (sourceFile.isDirectory()) {
-                transformDirectory(sourceFile, packagesMappingFile);
+                transformDirectory(sourceFile, configsDir);
             } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-                transformFile(sourceFile, new File(sourceFile.getParentFile(), sourceFile.getName() + ".transformed"), packagesMappingFile);
+                transformFile(sourceFile, new File(sourceFile.getParentFile(), sourceFile.getName() + ".transformed"), configsDir);
             }
         }
     }
 
-    static void transformFile(final File sourceFile, final File targetFile, final String packagesMappingFile) throws IOException {
+    static void transformFile(final File sourceFile, final File targetFile, final String configsDir) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
         }
@@ -63,7 +62,9 @@ final class HandleTransformation {
         }
         if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
             TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
-            builder.setConfiguration(Config.PACKAGES_MAPPING, packagesMappingFile);
+            if (configsDir != null) {
+                builder.setConfigsDir(configsDir);
+            }
             ArchiveTransformer transformer = builder.build();
             transformer.transform(sourceFile, targetFile);
         }

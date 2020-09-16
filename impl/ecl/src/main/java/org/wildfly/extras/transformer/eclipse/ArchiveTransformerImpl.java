@@ -23,7 +23,6 @@ import static org.eclipse.transformer.Transformer.AppOption.RULES_RENAMES;
 import org.eclipse.transformer.action.Changes;
 import org.eclipse.transformer.Transformer;
 import org.wildfly.extras.transformer.ArchiveTransformer;
-import org.wildfly.extras.transformer.Config;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,8 +41,8 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
     public static final String DEFAULT_PER_CLASS_REFERENCE = "jakarta-per-class.properties";
     public static final String DEFAULT_DIRECT_REFERENCE = "jakarta-direct.properties";
 
-    ArchiveTransformerImpl(final Map<Config, String> configs, final boolean verbose) {
-        super(configs, verbose);
+    ArchiveTransformerImpl(final File configsDir, final boolean verbose) {
+        super(configsDir, verbose);
     }
 
     private Map<Transformer.AppOption, String> getOptionDefaults() {
@@ -56,7 +55,7 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
     }
 
     @Override
-    public boolean transform(final File inJarFile, final File outJarFile) throws IOException {
+    public boolean transform(final File inJarFile, final File outJarFile) {
         boolean transformed;
         try {
             if (!verbose) {
@@ -64,21 +63,27 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
                 System.setProperty("org.slf4j.simpleLogger.log.Transformer", "error");
             }
             List<String> args = new ArrayList<>();
-            if (configs.containsKey(Config.PACKAGES_MAPPING)) {
-                args.add("-tr");
-                args.add(configs.get(Config.PACKAGES_MAPPING));
-            }
-            if (configs.containsKey(Config.TEXT_FILES_MAPPING)) {
-                args.add("-tf");
-                args.add(configs.get(Config.TEXT_FILES_MAPPING));
-            }
-            if (configs.containsKey(Config.PER_CLASS_MAPPING)) {
-                args.add("-tp");
-                args.add(configs.get(Config.PER_CLASS_MAPPING));
-            }
-            if (configs.containsKey(Config.DIRECT_MAPPING)) {
-                args.add("-td");
-                args.add(configs.get(Config.DIRECT_MAPPING));
+            if (configsDir != null) {
+                File configFile = new File(configsDir, DEFAULT_RENAMES_REFERENCE);
+                if (configFile.exists() && configFile.isFile()) {
+                    args.add("-tr");
+                    args.add(configFile.getAbsolutePath());
+                }
+                configFile = new File(configsDir, DEFAULT_MASTER_TXT_REFERENCE);
+                if (configFile.exists() && configFile.isFile()) {
+                    args.add("-tf");
+                    args.add(configFile.getAbsolutePath());
+                }
+                configFile = new File(configsDir, DEFAULT_PER_CLASS_REFERENCE);
+                if (configFile.exists() && configFile.isFile()) {
+                    args.add("-tp");
+                    args.add(configFile.getAbsolutePath());
+                }
+                configFile = new File(configsDir, DEFAULT_DIRECT_REFERENCE);
+                if (configFile.exists() && configFile.isFile()) {
+                    args.add("-td");
+                    args.add(configFile.getAbsolutePath());
+                }
             }
             args.add(inJarFile.getAbsolutePath());
             args.add(outJarFile.getAbsolutePath());
@@ -117,4 +122,6 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
             return changes.hasChanges();
         }
         return false;
-    }}
+    }
+
+}

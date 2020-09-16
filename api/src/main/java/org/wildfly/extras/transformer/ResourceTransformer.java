@@ -39,18 +39,14 @@ public abstract class ResourceTransformer {
     protected final Map<String, String> mappingWithDots = new HashMap<>();
     protected final boolean verbose;
 
-    protected ResourceTransformer(final Map<Config, String> configs, final boolean verbose) throws IOException {
+    protected ResourceTransformer(final File configsDir, final boolean verbose) throws IOException {
         this.verbose = verbose;
-        String config = configs.get(Config.PACKAGES_MAPPING);
-        if (config == null) {
-            config = SEP + DEFAULT_CONFIG;
-        }
         final InputStream mappingFile;
-        final File userConfig = new File(config);
+        final File userConfig = new File(configsDir, DEFAULT_CONFIG);
         if (userConfig.exists() && userConfig.isFile()) {
             mappingFile = new FileInputStream(userConfig);
         } else {
-            mappingFile = ResourceTransformer.class.getResourceAsStream(config);
+            mappingFile = ResourceTransformer.class.getResourceAsStream(SEP + DEFAULT_CONFIG);
         }
         if (mappingFile == null) throw new IllegalArgumentException("Couldn't find specified config file neither on file system nor on class path");
         try {
