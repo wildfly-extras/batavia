@@ -96,11 +96,6 @@ public final class Main {
             System.err.println("Source archive doesn't exist: " + sourceFile.getAbsolutePath());
             return false;
         }
-        final File targetFile = new File(args[args.length - 1]);
-        if (targetFile.exists()) {
-            System.err.println("Target archive exists: " + targetFile.getAbsolutePath());
-            return false;
-        }
         return true;
     }
 
@@ -112,10 +107,6 @@ public final class Main {
         System.err.println("   " + CONFIGS_DIR + "<directory>");
         System.err.println("              If this parameter is not specified on the command line");
         System.err.println("              default mapping configurations will be used");
-        System.err.println("");
-        System.err.println("Notes:");
-        System.err.println(" * source.archive must exist");
-        System.err.println(" * target.archive cannot exist");
     }
 
 }
