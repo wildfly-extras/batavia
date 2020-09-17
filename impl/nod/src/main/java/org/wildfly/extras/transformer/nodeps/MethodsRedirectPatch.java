@@ -51,6 +51,7 @@ final class MethodsRedirectPatch {
         // Temporary mapping tables (will contain white spaces) - they will be used later for creation of final mapping tables
         final byte[][] tempFrom = new byte[matches.length][];
         final byte[][] tempTo = new byte[matches.length][];
+        final int[] poolIndicesMapping = new int[matches.length];
         // For every 'method call match' defined in MethodRedirection we will generate indices of
         // generated utility class info structures in constant pool to forward calls to
         final int[] generatedClassPoolIndices = new int[matches.length];
@@ -85,7 +86,7 @@ final class MethodsRedirectPatch {
                                 }
                             }
                             if (utilClassExists) {
-                                generatedClassPoolIndices[i] = generatedClassPoolIndices[j];
+                                generatedClassPoolIndices[i] = generatedClassPoolIndices[poolIndicesMapping[j]];
                                 break;
                             }
                         }
@@ -93,6 +94,7 @@ final class MethodsRedirectPatch {
                         // all previous utility class names didn't match - adding
                         tempFrom[countOfGeneratedClasses] = oldUtilityClassName;
                         tempTo[countOfGeneratedClasses] = newUtilityClassName;
+                        poolIndicesMapping[countOfGeneratedClasses] = i;
                         // add class info redirection mapping
                         generatedClassPoolIndices[i] = countOfGeneratedClasses * 2 + classPoolIndex;
                         countOfGeneratedClasses++;
