@@ -40,10 +40,10 @@ final class OpcodeUtils {
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 101 - 110
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 111 - 120
             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 121 - 130
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 131 - 140
-            1, 3, 1, 1, 1, 1, 1, 1, 1, 1, // 141 - 150
+            1, 3, 1, 1, 1, 1, 1, 1, 1, 1, // 131 - 140
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 141 - 150
             1, 1, 3, 3, 3, 3, 3, 3, 3, 3, // 151 - 160
-            1, 1, 3, 3, 3, 3, 3, 3, 2, 0, // 161 - 170 (position 170 - zero value indicates special handling)
+            3, 3, 3, 3, 3, 3, 3, 3, 2, 0, // 161 - 170 (position 170 - zero value indicates special handling)
             0, 1, 1, 1, 1, 1, 1, 3, 3, 3, // 171 - 180 (position 171 - zero value indicates special handling)
             3, 3, 3, 3, 5, 5, 3, 2, 3, 1, // 181 - 190
             1, 3, 3, 1, 1, 0, 4, 3, 3, 5, // 191 - 200 (position 196 - zero value indicates special handling)
@@ -85,33 +85,33 @@ final class OpcodeUtils {
         int unsignedByte;
         for (int i = codeAttr.getCodeStartRef(); i < codeAttr.getCodeEndRef();) {
             unsignedByte = MASK_FF & clazz[i];
-            System.out.println(i + ": " + ((unsignedByte & MASK_F0) == 0 ? "0" : "") + toHexString(unsignedByte));
-            i+= instructionBytesCount(clazz, i);
+            System.out.println((i - codeAttr.getCodeStartRef()) + ": " + ((unsignedByte & MASK_F0) == 0 ? "0" : "") + toHexString(unsignedByte));
+            i += instructionBytesCount(clazz, i, codeAttr.getCodeStartRef());
         }
     }
 
-    static int instructionBytesCount(final byte[] clazz, final int position) {
+    static int instructionBytesCount(final byte[] clazz, final int position, final int startPosition) {
         final int opCode = MASK_FF & clazz[position];
         final int retVal = OP_CODES_SIZE[opCode];
         if (retVal != 0) return retVal;
         // otherwise zero indicates special handling (additional computation) is needed
         if (opCode == TABLESWITCH) {
-            final int paddingSize = 3 - (position % 4);
-            final int lowIdx = position + paddingSize + 4;
+            final int paddingSize = 3 - ((position - startPosition) % 4);
+            final int lowIdx = position + 1 + paddingSize + 4;
             final int low = ClassFileUtils.readUnsignedInt(clazz, lowIdx);
             final int highIdx = lowIdx + 4;
             final int high = ClassFileUtils.readUnsignedInt(clazz, highIdx);
             return 1 + paddingSize + 4 + 4 + 4 + 4 * (high - low + 1);
         }
         if (opCode == LOOKUPSWITCH) {
-            final int paddingSize = 3 - (position % 4);
-            final int npairsIdx = position + paddingSize + 4;
+            final int paddingSize = 3 - ((position - startPosition) % 4);
+            final int npairsIdx = position + 1 + paddingSize + 4;
             final int npairs = ClassFileUtils.readUnsignedInt(clazz, npairsIdx);
             return 1 + paddingSize + 4 + 4 + 8 * (npairs);
         }
         if (opCode == WIDE) {
             final int nextOpCode = MASK_FF & clazz[position+1];
-            return nextOpCode == IINC ? 5 : 3;
+            return nextOpCode == IINC ? 6 : 4;
         }
         throw new UnsupportedOperationException();
     }

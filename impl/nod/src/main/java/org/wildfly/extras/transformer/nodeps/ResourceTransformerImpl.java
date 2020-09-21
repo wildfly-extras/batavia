@@ -23,7 +23,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.wildfly.extras.transformer.ResourceTransformer;
 
@@ -47,6 +49,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
     }
 
     final Utf8InfoMapping utf8Mapping;
+    private final Set<String> generatedClasses = new HashSet<>();
 
     ResourceTransformerImpl(final File configsDir, final boolean verbose) throws IOException {
         super(configsDir, verbose);
@@ -124,7 +127,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         if (utf8ItemsPatch != null) diffInBytes += utf8ItemsPatch.diffInBytes;
         MethodsRedirectPatch methodsRedirectPatch = null;
         if (!transformedClassName.startsWith(OUR_PACKAGE)) {
-            methodsRedirectPatch = MethodsRedirectPatch.of(clazz, cfRefs);
+            methodsRedirectPatch = MethodsRedirectPatch.of(clazz, cfRefs, utf8Mapping);
             if (methodsRedirectPatch != null) diffInBytes += methodsRedirectPatch.diffInBytes;
         }
 
@@ -138,8 +141,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         final byte[] patchedClass = applyPatches(clazz, utf8Mapping,clazz.length + diffInBytes, cfRefs, utf8ItemsPatch, methodsRedirectPatch, null);
         final Resource patchedClassResource = new Resource(newResourceName, patchedClass);
         final MethodsRedirectPatch.UtilityClasses utilClasses = methodsRedirectPatch != null ? methodsRedirectPatch.utilClasses : null;
-        final Resource[] retVal = new Resource[(utilClasses != null ? utilClasses.utilClassesRefactoring.to.length - 1 : 0) + 1];
-        retVal[0] = patchedClassResource;
+        final Set<Resource> generatedUtilClasses = new HashSet<>();
         if (utilClasses != null) {
             final byte[][] oldClassNames = utilClasses.utilClassesRefactoring.from;
             final byte[][] newClassNames = utilClasses.utilClassesRefactoring.to;
@@ -149,10 +151,19 @@ final class ResourceTransformerImpl extends ResourceTransformer {
             for (int i = 1; i < oldClassNames.length; i++) {
                 oldClassName = ClassFileUtils.utf8ToString(oldClassNames[i], 0, oldClassNames[i].length) + ".class";
                 newClassName = ClassFileUtils.utf8ToString(newClassNames[i], 0, newClassNames[i].length) + ".class";
-                oldUtilClassBytes = getResourceBytes(oldClassName);
-                newUtilClassBytes = transformUtilityClass(oldUtilClassBytes, utilClasses.utilClassesRefactoring, utf8Mapping);
-                retVal[i] = new Resource(newClassName, newUtilClassBytes);
+                if (!generatedClasses.contains(newClassName)) {
+                    generatedClasses.add(newClassName);
+                    oldUtilClassBytes = getResourceBytes(oldClassName);
+                    newUtilClassBytes = transformUtilityClass(oldUtilClassBytes, utilClasses.utilClassesRefactoring, utf8Mapping);
+                    generatedUtilClasses.add(new Resource(newClassName, newUtilClassBytes));
+                }
             }
+        }
+        final Resource[] retVal = new Resource[generatedUtilClasses.size() + 1];
+        retVal[0] = patchedClassResource;
+        int i = 1;
+        for (final Resource generatedClass : generatedUtilClasses) {
+            retVal[i++] = generatedClass;
         }
         return retVal;
     }

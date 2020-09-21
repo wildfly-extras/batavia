@@ -59,6 +59,11 @@ public abstract class ArchiveTransformer {
                 throw new IOException("Couldn't create directory: " + dir.getAbsolutePath());
             }
         }
+        if (outJarFile.exists()) {
+            if (!outJarFile.delete()) {
+                throw new IOException("Couldn't delete file: " + outJarFile.getAbsolutePath());
+            }
+        }
         if (!outJarFile.createNewFile()) {
             throw new IOException("Couldn't create file: " + outJarFile.getAbsolutePath());
         }

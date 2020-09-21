@@ -284,7 +284,7 @@ final class MethodsPatch {
         int patchIndex = 4;
         int opcode;
 
-        for (int i = offset; i <= limit - MINIMUM; i += OpcodeUtils.instructionBytesCount(clazz, i)) {
+        for (int i = offset; i <= limit - MINIMUM; i += OpcodeUtils.instructionBytesCount(clazz, i, offset)) {
             opcode = OpcodeUtils.MASK_FF & clazz[i];
             if (opcode != INVOKESTATIC && opcode != INVOKEVIRTUAL && opcode != LDC) continue; // TODO: every mapping should define interested in OPs
             for (int j = 1; j < mappingFrom.length; j++) {
