@@ -60,6 +60,8 @@ final class ResourceTransformerImpl extends ResourceTransformer {
     private static final String CLASS_SUFFIX = ".class";
     private static final int CLASS_SUFFIX_LENGTH = CLASS_SUFFIX.length(); 
     private static final String XML_SUFFIX = ".xml";
+    private static final String TLD_SUFFIX = ".tld";
+    private static final String JSP_SUFFIX = ".jsp";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
     private static final String CLASS_FOR_NAME_PRIVATE_METHOD = "org_wildfly_tranformer_asm_classForName_String__boolean_ClassLoader";
     private static final String REFLECTIONMODEL_INTERNAL_NAME = ReflectionModel.class.getName().replace('.','/');
@@ -652,7 +654,11 @@ final class ResourceTransformerImpl extends ResourceTransformer {
                     
             return transform(newResourceName, r.getData());
         } else if (oldResourceName.endsWith(XML_SUFFIX)) {
-            retVal = new Resource(newResourceName, xmlFile(r.getData()));
+            retVal = new Resource(newResourceName, textFile(r.getData()));
+        } else if (oldResourceName.endsWith(TLD_SUFFIX)) {
+            retVal = new Resource(newResourceName, textFile(r.getData()));
+        } else if (oldResourceName.endsWith(JSP_SUFFIX)) {
+            retVal = new Resource(newResourceName, textFile(r.getData()));
         } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
             newResourceName = replacePackageName(oldResourceName, true);
             if (!newResourceName.equals(oldResourceName)) {
@@ -682,7 +688,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         return resourceName;
     }
 
-    private static byte[] xmlFile(final byte[] data) {
+    private static byte[] textFile(final byte[] data) {
         try {
             return new String(data, "UTF-8").replace("javax.", "jakarta.").getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
