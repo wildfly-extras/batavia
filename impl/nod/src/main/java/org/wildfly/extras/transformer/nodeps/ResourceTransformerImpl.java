@@ -40,6 +40,8 @@ final class ResourceTransformerImpl extends ResourceTransformer {
     private static final Resource[] EMPTY_ARRAY = new Resource[0];
     private static final String CLASS_SUFFIX = ".class";
     private static final String XML_SUFFIX = ".xml";
+    private static final String TLD_SUFFIX = ".tld";
+    private static final String JSP_SUFFIX = ".jsp";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
     private static final String OUR_PACKAGE;
 
@@ -85,7 +87,11 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         if (oldResourceName.endsWith(CLASS_SUFFIX)) {
             retVal = transform(r.getData(), utf8Mapping, newResourceName);
         } else if (oldResourceName.endsWith(XML_SUFFIX)) {
-            retVal = new Resource[]{new Resource(newResourceName, xmlFile(r.getData()))};
+            retVal = new Resource[]{new Resource(newResourceName, textFile(r.getData()))};
+        } else if (oldResourceName.endsWith(TLD_SUFFIX)) {
+            retVal = new Resource[]{new Resource(newResourceName, textFile(r.getData()))};
+        } else if (oldResourceName.endsWith(JSP_SUFFIX)) {
+            retVal = new Resource[]{new Resource(newResourceName, textFile(r.getData()))};
         } else if (oldResourceName.startsWith(META_INF_SERVICES_PREFIX)) {
             newResourceName = replacePackageName(oldResourceName, true);
             if (!newResourceName.equals(oldResourceName)) {
@@ -108,7 +114,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         return resourceName;
     }
 
-    private static byte[] xmlFile(final byte[] data) {
+    private static byte[] textFile(final byte[] data) {
         try {
             // TODO: use mapping provided in constructor!!!
             return new String(data, "UTF-8").replace("javax.", "jakarta.").getBytes("UTF-8");
