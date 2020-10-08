@@ -30,7 +30,7 @@
     <name>Javax to Jakarta Transformation Project</name>
     <groupId>org.wildfly.extras.batavia</groupId>
     <artifactId>transformer-parent</artifactId>
-    <version>1.0.0.Alpha6-SNAPSHOT</version>
+    <version>1.0.0.Final</version>
     <packaging>pom</packaging>
 
     <licenses>
