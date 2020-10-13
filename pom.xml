@@ -53,7 +53,7 @@
     </issueManagement>
 
     <properties>
-        <version.junit>4.12</version.junit>
+        <version.junit>4.13.1</version.junit>
         <version.org.ow2.asm>7.3.1</version.org.ow2.asm>
         <version.org.eclipse.transformer>0.2.0</version.org.eclipse.transformer>
         <version.maven.core>3.6.3</version.maven.core>
