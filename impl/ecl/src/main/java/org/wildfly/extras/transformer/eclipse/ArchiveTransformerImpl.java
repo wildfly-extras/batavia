@@ -114,7 +114,7 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
         @SuppressWarnings("unused")
         int rc = jTrans.run();
         if (rc != 0) {
-            throw new IOException("Error occured during transformation. Error code " + rc);
+            throw new IOException("Error occurred during transformation. Error code " + rc);
         }
         // New API needed in eclipse transformer.
         Changes changes = jTrans.getLastActiveChanges();
