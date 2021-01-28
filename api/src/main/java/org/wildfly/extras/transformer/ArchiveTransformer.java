@@ -15,7 +15,6 @@
  */
 package org.wildfly.extras.transformer;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -44,11 +43,13 @@ public abstract class ArchiveTransformer {
     }
 
     /**
-     * Attempts to apply configured transformations to given <code>source</code> archive and produces new <code>target</code> archive.
+     * Attempts to apply configured transformations to given <code>source</code> archive and produces new
+     * <code>target</code> archive.
      *
      * @param inJarFile archive file to be consumed (can be exploded)
      * @param outJarFile archive file to be produced (will be exploded if source was exploded)
-     * @return <code>true</code> if transformations were applied to archive, <code>false</code> if source and target contents are identical.
+     * @return <code>true</code> if transformations were applied to archive, <code>false</code> if source and target
+     * contents are identical.
      * @throws IOException if some I/O error occurs
      */
     public boolean transform(final File inJarFile, final File outJarFile) throws IOException {
@@ -69,18 +70,14 @@ public abstract class ArchiveTransformer {
         }
         final ResourceTransformer t = newResourceTransformer();
         final Calendar calendar = Calendar.getInstance();
-        JarFile jar = null;
-        JarOutputStream jarOutputStream = null;
         JarEntry inJarEntry, outJarEntry;
         byte[] buffer;
         ResourceTransformer.Resource oldResource;
         ResourceTransformer.Resource[] newResources;
 
-        try {
-            jar = new JarFile(inJarFile);
-            jarOutputStream = new JarOutputStream(new FileOutputStream(outJarFile));
-
-            for (final Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
+        try (JarFile jar = new JarFile(inJarFile);
+                JarOutputStream jarOutputStream = new JarOutputStream(new FileOutputStream(outJarFile));) {
+            for (final Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements();) {
                 // jar file entry preconditions
                 inJarEntry = e.nextElement();
                 if (inJarEntry.getSize() == 0) {
@@ -94,12 +91,15 @@ public abstract class ArchiveTransformer {
                 }
                 // reading original jar file entry
                 buffer = new byte[(int) inJarEntry.getSize()];
-                readBytes(jar.getInputStream(inJarEntry), buffer, true);
+                try (InputStream in = jar.getInputStream(inJarEntry)) {
+                    readBytes(in, buffer);
+                }
+
                 oldResource = new ResourceTransformer.Resource(inJarEntry.getName(), buffer);
                 // transform resource
                 newResources = t.transform(oldResource);
                 if (newResources.length == 0) {
-                    newResources = new ResourceTransformer.Resource[] {oldResource};
+                    newResources = new ResourceTransformer.Resource[]{oldResource};
                 } else {
                     transformed = true;
                 }
@@ -109,13 +109,10 @@ public abstract class ArchiveTransformer {
                     outJarEntry.setSize(newResource.getData().length);
                     outJarEntry.setTime(calendar.getTimeInMillis());
                     jarOutputStream.putNextEntry(outJarEntry);
-                    writeBytes(jarOutputStream, newResource.getData(), false);
+                    writeBytes(jarOutputStream, newResource.getData());
                     jarOutputStream.closeEntry();
                 }
             }
-        } finally {
-            safeClose(jar);
-            safeClose(jarOutputStream);
         }
         return transformed;
     }
@@ -125,35 +122,18 @@ public abstract class ArchiveTransformer {
         throw new UnsupportedOperationException();
     }
 
-    private static void safeClose(final Closeable c) {
-        try {
-            if (c != null) c.close();
-        } catch (final Throwable t) {
-            // ignored
+    private static void readBytes(final InputStream is, final byte[] clazz) throws IOException {
+        int offset = 0;
+        while (offset < clazz.length) {
+            offset += is.read(clazz, offset, clazz.length - offset);
         }
     }
 
-    private static void readBytes(final InputStream is, final byte[] clazz, final boolean closeStream) throws IOException {
-        try {
-            int offset = 0;
-            while (offset < clazz.length) {
-                offset += is.read(clazz, offset, clazz.length - offset);
-            }
-        } finally {
-            if (closeStream) {
-                safeClose(is);
-            }
-        }
+    private static void writeBytes(final OutputStream os, final byte[] clazz) throws IOException {
+        os.write(clazz);
     }
 
-    private static void writeBytes(final OutputStream os, final byte[] clazz, final boolean closeStream) throws IOException {
-        try {
-            os.write(clazz);
-        } finally {
-            if (closeStream) {
-                safeClose(os);
-            }
-        }
+    public boolean canTransformIndividualClassFile() {
+        return false;
     }
-
 }
