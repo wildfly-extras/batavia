@@ -21,6 +21,7 @@ import org.wildfly.extras.transformer.ArchiveTransformer;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 /**
  * HandleTransformation
@@ -34,39 +35,47 @@ final class HandleTransformation {
 
     /**
      * Transform the files contained under the folder path specified.
-     * 
+     *
      * @param folder represents a filesystem path that contains files/subfolders to be transformed.
      */
-    static void transformDirectory(final File folder, final String configsDir) throws IOException {
+    static void transformDirectory(final File folder, final File targetFolder, final String configsDir, final boolean verbose, final boolean overwrite) throws IOException {
         final File[] files = folder.listFiles();
-        if (files == null) return;
-
+        if (files == null) {
+            return;
+        }
         for (File sourceFile : files) {
+            File targetFile = new File(targetFolder, sourceFile.getName());
+
             if (sourceFile.isDirectory()) {
-                transformDirectory(sourceFile, configsDir);
-            } else if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-                transformFile(sourceFile, new File(sourceFile.getParentFile(), sourceFile.getName() + ".transformed"), configsDir);
+                transformDirectory(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, overwrite);
+            } else {
+                if (targetFile.exists()) {
+                    if (overwrite) {
+                        targetFile.delete();
+                        transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose);
+                    }
+                } else {
+                    transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose);
+                }
             }
         }
     }
 
-    static void transformFile(final File sourceFile, final File targetFile, final String configsDir) throws IOException {
+    static void transformFile(final File sourceFile, final File targetFile, final String configsDir, final boolean verbose) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
         }
-        if (!sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            throw new IllegalArgumentException("Supported file extensions are " + JAR_FILE_EXT + " : " + sourceFile.getAbsolutePath());
+        TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
+        if (configsDir != null) {
+            builder.setConfigsDir(configsDir);
         }
-        if (!sourceFile.exists()) {
-            throw new IllegalArgumentException("Couldn't find file " + sourceFile.getAbsolutePath());
-        }
-        if (sourceFile.getName().endsWith(JAR_FILE_EXT)) {
-            TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
-            if (configsDir != null) {
-                builder.setConfigsDir(configsDir);
-            }
-            ArchiveTransformer transformer = builder.build();
+        builder.setVerbose(verbose);
+        ArchiveTransformer transformer = builder.build();
+        if (transformer.canTransformIndividualClassFile() || sourceFile.getName().endsWith(JAR_FILE_EXT)) {
+            Files.createDirectories(targetFile.toPath().getParent());
             transformer.transform(sourceFile, targetFile);
+        } else {
+            throw new IllegalArgumentException("Supported file extensions are " + JAR_FILE_EXT + " : " + sourceFile.getAbsolutePath());
         }
     }
 

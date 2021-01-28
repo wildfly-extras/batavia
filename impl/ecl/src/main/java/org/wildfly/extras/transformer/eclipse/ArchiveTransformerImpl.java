@@ -124,4 +124,9 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
         return false;
     }
 
+    @Override
+    public boolean canTransformIndividualClassFile() {
+        return true;
+    }
+
 }
