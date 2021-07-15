@@ -1,0 +1,186 @@
+= Maven Extension
+
+== Overview
+
+A maven extension that can be used to transform Jakarta EE 8 based libraries to Jakarta EE 9 during a maven build. The
+new artifacts will be installed in the local maven directory.
+
+
+WARNING: Transitive dependencies are aggressively transformed regardless of if they need to be or not. This should be
+         used conservatively for that reason.
+
+== Usage
+
+To use the extension you need to define the extension in your POM file.
+
+[source,xml]
+----
+<build>
+    <extensions>
+        <extension>
+            <groupId>org.wildfly.extras.batavia</groupId>
+            <artifactId>eclipse-transformer-maven-extension</artifactId>
+            <version>${project.version}</version>
+        </extension>
+    </extensions>
+</build>
+----
+
+Then simply append `-$$jakarta9$$` to any dependency that would need to be transformed.
+
+== Example
+
+In the following example the `org.eclipse.microprofile.rest.client:microprofile-confi-api` dependency and all of
+its runtime dependencies will be transformed.
+
+[source,xml]
+----
+<project>
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <version>3.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.microprofile.config</groupId>
+            <artifactId>microprofile-config-api</artifactId>
+            <version>2.0-$$jakarta9$$</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.inject</groupId>
+                    <artifactId>javax.inject</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+    <build>
+        <extensions>
+            <extension>
+                <groupId>org.wildfly.extras.batavia</groupId>
+                <artifactId>eclipse-transformer-maven-extension</artifactId>
+                <version>${project.version}</version>
+            </extension>
+        </extensions>
+    </build>
+</project>
+----
+
+.Example Directory Tree After
+[source,text]
+----
+~/.m2/repository/io/smallrye/
+├── common
+│   ├── smallrye-common-annotation
+│   │   ├── 1.6.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-common-annotation-1.6.0.jar
+│   │   │   ├── smallrye-common-annotation-1.6.0.jar.sha1
+│   │   │   ├── smallrye-common-annotation-1.6.0.pom
+│   │   │   └── smallrye-common-annotation-1.6.0.pom.sha1
+│   │   └── 1.6.0-$$jakarta9$$
+│   │       ├── smallrye-common-annotation-1.6.0-$$jakarta9$$.jar
+│   │       └── smallrye-common-annotation-1.6.0-$$jakarta9$$.pom
+│   ├── smallrye-common-bom
+│   │   ├── 1.6.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-common-bom-1.6.0.pom
+│   │   │   └── smallrye-common-bom-1.6.0.pom.sha1
+│   │   └── 1.6.0-$$jakarta9$$
+│   │       └── smallrye-common-bom-1.6.0-$$jakarta9$$.pom
+│   ├── smallrye-common-classloader
+│   │   ├── 1.6.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-common-classloader-1.6.0.jar
+│   │   │   ├── smallrye-common-classloader-1.6.0.jar.sha1
+│   │   │   ├── smallrye-common-classloader-1.6.0.pom
+│   │   │   └── smallrye-common-classloader-1.6.0.pom.sha1
+│   │   └── 1.6.0-$$jakarta9$$
+│   │       ├── smallrye-common-classloader-1.6.0-$$jakarta9$$.jar
+│   │       └── smallrye-common-classloader-1.6.0-$$jakarta9$$.pom
+│   ├── smallrye-common-constraint
+│   │   ├── 1.6.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-common-constraint-1.6.0.jar
+│   │   │   ├── smallrye-common-constraint-1.6.0.jar.sha1
+│   │   │   ├── smallrye-common-constraint-1.6.0.pom
+│   │   │   └── smallrye-common-constraint-1.6.0.pom.sha1
+│   │   ├── 1.6.0-$$jakarta9$$
+│   │   │   ├── smallrye-common-constraint-1.6.0-$$jakarta9$$.jar
+│   │   │   └── smallrye-common-constraint-1.6.0-$$jakarta9$$.pom
+│   │   └── 1.6.0-$$jakarta9$$-$$jakarta9$$
+│   │       └── smallrye-common-constraint-1.6.0-$$jakarta9$$-$$jakarta9$$.pom
+│   ├── smallrye-common-expression
+│   │   ├── 1.6.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-common-expression-1.6.0.jar
+│   │   │   ├── smallrye-common-expression-1.6.0.jar.sha1
+│   │   │   ├── smallrye-common-expression-1.6.0.pom
+│   │   │   └── smallrye-common-expression-1.6.0.pom.sha1
+│   │   └── 1.6.0-$$jakarta9$$
+│   │       ├── smallrye-common-expression-1.6.0-$$jakarta9$$.jar
+│   │       └── smallrye-common-expression-1.6.0-$$jakarta9$$.pom
+│   ├── smallrye-common-function
+│   │   ├── 1.6.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-common-function-1.6.0.jar
+│   │   │   ├── smallrye-common-function-1.6.0.jar.sha1
+│   │   │   ├── smallrye-common-function-1.6.0.pom
+│   │   │   └── smallrye-common-function-1.6.0.pom.sha1
+│   │   └── 1.6.0-$$jakarta9$$-$$jakarta9$$
+│   │       ├── smallrye-common-function-1.6.0-$$jakarta9$$-$$jakarta9$$.jar
+│   │       └── smallrye-common-function-1.6.0-$$jakarta9$$-$$jakarta9$$.pom
+│   └── smallrye-common-parent
+│       ├── 1.6.0
+│       │   ├── _remote.repositories
+│       │   ├── smallrye-common-parent-1.6.0.pom
+│       │   └── smallrye-common-parent-1.6.0.pom.sha1
+│       └── 1.6.0-$$jakarta9$$
+│           └── smallrye-common-parent-1.6.0-$$jakarta9$$.pom
+├── config
+│   ├── smallrye-config
+│   │   ├── 2.3.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-config-2.3.0.jar
+│   │   │   ├── smallrye-config-2.3.0.jar.sha1
+│   │   │   ├── smallrye-config-2.3.0.pom
+│   │   │   └── smallrye-config-2.3.0.pom.sha1
+│   │   └── 2.3.0-$$jakarta9$$
+│   │       ├── smallrye-config-2.3.0-$$jakarta9$$.jar
+│   │       └── smallrye-config-2.3.0-$$jakarta9$$.pom
+│   ├── smallrye-config-common
+│   │   ├── 2.3.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-config-common-2.3.0.jar
+│   │   │   ├── smallrye-config-common-2.3.0.jar.sha1
+│   │   │   ├── smallrye-config-common-2.3.0.pom
+│   │   │   └── smallrye-config-common-2.3.0.pom.sha1
+│   │   └── 2.3.0-$$jakarta9$$-$$jakarta9$$
+│   │       ├── smallrye-config-common-2.3.0-$$jakarta9$$-$$jakarta9$$.jar
+│   │       └── smallrye-config-common-2.3.0-$$jakarta9$$-$$jakarta9$$.pom
+│   ├── smallrye-config-core
+│   │   ├── 2.3.0
+│   │   │   ├── _remote.repositories
+│   │   │   ├── smallrye-config-core-2.3.0.jar
+│   │   │   ├── smallrye-config-core-2.3.0.jar.sha1
+│   │   │   ├── smallrye-config-core-2.3.0.pom
+│   │   │   └── smallrye-config-core-2.3.0.pom.sha1
+│   │   └── 2.3.0-$$jakarta9$$-$$jakarta9$$
+│   │       ├── smallrye-config-core-2.3.0-$$jakarta9$$-$$jakarta9$$.jar
+│   │       └── smallrye-config-core-2.3.0-$$jakarta9$$-$$jakarta9$$.pom
+│   └── smallrye-config-parent
+│       ├── 2.3.0
+│       │   ├── _remote.repositories
+│       │   ├── smallrye-config-parent-2.3.0.pom
+│       │   └── smallrye-config-parent-2.3.0.pom.sha1
+│       └── 2.3.0-$$jakarta9$$
+│           └── smallrye-config-parent-2.3.0-$$jakarta9$$.pom
+└── smallrye-parent
+    ├── 26
+    │   ├── _remote.repositories
+    │   ├── smallrye-parent-26.pom
+    │   └── smallrye-parent-26.pom.sha1
+    └── 26-$$jakarta9$$
+        └── smallrye-parent-26-$$jakarta9$$.pom
+----

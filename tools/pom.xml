@@ -34,6 +34,7 @@
     <modules>
         <module>cli</module>
         <module>mvn</module>
+        <module>eclipse-transformer-maven-extension</module>
     </modules>
 
 </project>
