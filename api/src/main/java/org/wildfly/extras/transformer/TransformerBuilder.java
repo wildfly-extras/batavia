@@ -31,6 +31,7 @@ public abstract class TransformerBuilder {
     private final Thread thread = currentThread();
     protected File configsDir;
     protected Boolean verbose;
+    protected Boolean invert;
     private boolean built;
 
     protected TransformerBuilder() {
@@ -78,6 +79,22 @@ public abstract class TransformerBuilder {
         if (this.verbose != null) throw new IllegalStateException("This method can be called only once");
         // implementation
         this.verbose = verbose;
+        return this;
+    }
+
+    /**
+     * Inverts the transformation.
+     *
+     * @param invert if transformation should be inverted.
+     * @return this builder instance
+     */
+    public final TransformerBuilder setInvert(final boolean invert) {
+        // preconditions
+        if (thread != currentThread()) throw new ConcurrentModificationException("Builder instance used by multiple threads");
+        if (built) throw new IllegalStateException("Builder instance have been already closed");
+        if (this.invert != null) throw new IllegalStateException("This method can be called only once");
+        // implementation
+        this.invert = invert;
         return this;
     }
 

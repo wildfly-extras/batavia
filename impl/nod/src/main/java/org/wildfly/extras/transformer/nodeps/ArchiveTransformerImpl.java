@@ -26,13 +26,13 @@ import java.io.IOException;
  */
 final class ArchiveTransformerImpl extends ArchiveTransformer {
 
-    ArchiveTransformerImpl(final File configsDir, final boolean verbose) {
-        super(configsDir, verbose);
+    ArchiveTransformerImpl(final File configsDir, final boolean verbose, final boolean invert) {
+        super(configsDir, verbose, invert);
     }
 
     @Override
     protected ResourceTransformer newResourceTransformer() throws IOException {
-        return new ResourceTransformerImpl(configsDir, verbose);
+        return new ResourceTransformerImpl(configsDir, verbose, invert);
     }
 
 }

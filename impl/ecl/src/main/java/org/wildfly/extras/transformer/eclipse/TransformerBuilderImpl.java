@@ -25,7 +25,7 @@ final class TransformerBuilderImpl extends TransformerBuilder {
 
     @Override
     protected ArchiveTransformer buildInternal() {
-        return new ArchiveTransformerImpl(configsDir, verbose != null ? verbose : false);
+        return new ArchiveTransformerImpl(configsDir, verbose != null ? verbose : false,  invert != null ? invert : false);
     }
 
 }

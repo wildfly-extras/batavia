@@ -53,8 +53,8 @@ final class ResourceTransformerImpl extends ResourceTransformer {
     final Utf8InfoMapping utf8Mapping;
     private final Set<String> generatedClasses = new HashSet<>();
 
-    ResourceTransformerImpl(final File configsDir, final boolean verbose) throws IOException {
-        super(configsDir, verbose);
+    ResourceTransformerImpl(final File configsDir, final boolean verbose, final boolean invert) throws IOException {
+        super(configsDir, verbose, invert);
         final int arraySize = mappingWithSeps.size() + mappingWithDots.size() + 1;
         final byte[][] mappingFrom = new byte[arraySize][];
         final byte[][] mappingTo = new byte[arraySize][];
@@ -76,7 +76,12 @@ final class ResourceTransformerImpl extends ResourceTransformer {
             }
             i++;
         }
-        this.utf8Mapping = new Utf8InfoMapping(mappingFrom, mappingTo, minimum);
+        if (invert) {
+            this.utf8Mapping = new Utf8InfoMapping(mappingTo, mappingFrom, minimum);
+
+        } else {
+            this.utf8Mapping = new Utf8InfoMapping(mappingFrom, mappingTo, minimum);
+        }
     }
 
     @Override
@@ -98,7 +103,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
                 retVal = new Resource[]{new Resource(newResourceName, r.getData())};
             }
         } else if (!newResourceName.equals(oldResourceName)) {
-            retVal = new Resource[] {new Resource(newResourceName, r.getData())};
+            retVal = new Resource[]{new Resource(newResourceName, r.getData())};
         }
         return retVal == null ? EMPTY_ARRAY : retVal;
     }
@@ -130,11 +135,15 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         int diffInBytes = 0;
 
         final Utf8ItemsPatch utf8ItemsPatch = Utf8ItemsPatch.of(clazz, cpRefs, utf8Mapping);
-        if (utf8ItemsPatch != null) diffInBytes += utf8ItemsPatch.diffInBytes;
+        if (utf8ItemsPatch != null) {
+            diffInBytes += utf8ItemsPatch.diffInBytes;
+        }
         MethodsRedirectPatch methodsRedirectPatch = null;
         if (!transformedClassName.startsWith(OUR_PACKAGE)) {
             methodsRedirectPatch = MethodsRedirectPatch.of(clazz, cfRefs, utf8Mapping);
-            if (methodsRedirectPatch != null) diffInBytes += methodsRedirectPatch.diffInBytes;
+            if (methodsRedirectPatch != null) {
+                diffInBytes += methodsRedirectPatch.diffInBytes;
+            }
         }
 
         if (diffInBytes > 0 && Integer.MAX_VALUE - diffInBytes < clazz.length) {
@@ -142,9 +151,11 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         }
 
         final boolean patchesNotAvailable = utf8ItemsPatch == null && methodsRedirectPatch == null;
-        if (patchesNotAvailable) return null;
+        if (patchesNotAvailable) {
+            return null;
+        }
         // patches are available, patch the class
-        final byte[] patchedClass = applyPatches(clazz, utf8Mapping,clazz.length + diffInBytes, cfRefs, utf8ItemsPatch, methodsRedirectPatch, null);
+        final byte[] patchedClass = applyPatches(clazz, utf8Mapping, clazz.length + diffInBytes, cfRefs, utf8ItemsPatch, methodsRedirectPatch, null);
         final Resource patchedClassResource = new Resource(newResourceName, patchedClass);
         final MethodsRedirectPatch.UtilityClasses utilClasses = methodsRedirectPatch != null ? methodsRedirectPatch.utilClasses : null;
         final Set<Resource> generatedUtilClasses = new HashSet<>();
@@ -185,14 +196,16 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         // add mapping rules to constant pool and modify its static initializer to apply these rules
         final AddMappingPatch applyMappingsPatch = AddMappingPatch.of(clazz, cfRefs, mappingRules); // TODO: rename AddMappingPatch to ApplyMappingsPatch
         diffInBytes += applyMappingsPatch.diffInBytes;
-        return applyPatches(clazz, renameMapping,clazz.length + diffInBytes, cfRefs, renamePatch, null, applyMappingsPatch);
+        return applyPatches(clazz, renameMapping, clazz.length + diffInBytes, cfRefs, renamePatch, null, applyMappingsPatch);
     }
 
     private static byte[] toByteArray(final InputStream is) {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             int c = -1;
-            while ((c = is.read()) != -1) baos.write(c);
+            while ((c = is.read()) != -1) {
+                baos.write(c);
+            }
             return baos.toByteArray();
         } catch (Throwable t) {
             t.printStackTrace(System.err);
@@ -215,7 +228,7 @@ final class ResourceTransformerImpl extends ResourceTransformer {
      * @return modified class byte code with patches applied
      */
     private byte[] applyPatches(final byte[] oldClass, final Utf8InfoMapping utf8Mapping, final int newClassSize, final ClassFileRefs oldClassRefs,
-                                final Utf8ItemsPatch utf8ItemsPatch, final MethodsRedirectPatch methodsRedirectPatch, final AddMappingPatch applyMappingsPatch) {
+            final Utf8ItemsPatch utf8ItemsPatch, final MethodsRedirectPatch methodsRedirectPatch, final AddMappingPatch applyMappingsPatch) {
         if (verbose) {
             synchronized (System.out) {
                 System.out.println("[" + currentThread() + "] Patching class " + oldClassRefs.getThisClassAsString() + " - START");
@@ -239,48 +252,54 @@ final class ResourceTransformerImpl extends ResourceTransformer {
             ClassFileUtils.writeUnsignedShort(newClass, oldClassRefs.getConstantPool().getSizeStartRef(), applyMappingsPatch.currentPoolSize);
         }
 
-        if (utf8ItemsPatch != null) for (int[] utf8ItemPatch : utf8ItemsPatch.utf8ItemPatches) {
-            if (utf8ItemPatch == null) break;
-            oldUtf8ItemBytesSectionOffset = oldClassRefs.getConstantPool().getItemRefs()[utf8ItemPatch[0]] + 3;
-            // copy till start of next utf8 item bytes section
-            length = oldUtf8ItemBytesSectionOffset - oldClassOffset;
-            arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
-            oldClassOffset += length;
-            newClassOffset += length;
-            if (verbose) {
-                debugOldUtf8ItemOffset = oldClassOffset;
-                debugNewUtf8ItemOffset = newClassOffset;
-            }
-            // patch utf8 item length
-            oldUtf8ItemLength = ClassFileUtils.readUnsignedShort(oldClass, oldClassOffset - 2);
-            ClassFileUtils.writeUnsignedShort(newClass, newClassOffset - 2, oldUtf8ItemLength + utf8ItemPatch[1]);
-            // apply utf8 info bytes section patches
-            for (int i = 2; i < utf8ItemPatch.length;) {
-                mappingIndex = utf8ItemPatch[i++];
-                if (mappingIndex == 0) break;
-                patchOffset = utf8ItemPatch[i++];
-                // copy till begin of patch
-                length = patchOffset - (oldClassOffset - oldUtf8ItemBytesSectionOffset);
+        if (utf8ItemsPatch != null) {
+            for (int[] utf8ItemPatch : utf8ItemsPatch.utf8ItemPatches) {
+                if (utf8ItemPatch == null) {
+                    break;
+                }
+                oldUtf8ItemBytesSectionOffset = oldClassRefs.getConstantPool().getItemRefs()[utf8ItemPatch[0]] + 3;
+                // copy till start of next utf8 item bytes section
+                length = oldUtf8ItemBytesSectionOffset - oldClassOffset;
                 arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
                 oldClassOffset += length;
                 newClassOffset += length;
-                // apply patch
-                arraycopy(utf8Mapping.to[mappingIndex], 0, newClass, newClassOffset, utf8Mapping.to[mappingIndex].length);
-                oldClassOffset += utf8Mapping.from[mappingIndex].length;
-                newClassOffset += utf8Mapping.to[mappingIndex].length;
-            }
-            // copy remaining class byte code till utf8 item end
-            length = oldUtf8ItemBytesSectionOffset + oldUtf8ItemLength - oldClassOffset;
-            arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
-            oldClassOffset += length;
-            newClassOffset += length;
-            if (verbose) {
-                synchronized (System.out) {
-                    System.out.println("[" + currentThread() + "] Patching UTF-8 constant pool item on position: " + utf8ItemPatch[0]);
-                    debugOldUtf8ItemLength = ClassFileUtils.readUnsignedShort(oldClass, debugOldUtf8ItemOffset - 2);
-                    System.out.println("[" + currentThread() + "] old value: " + ClassFileUtils.utf8ToString(oldClass, debugOldUtf8ItemOffset, debugOldUtf8ItemOffset + debugOldUtf8ItemLength));
-                    debugNewUtf8ItemLength = ClassFileUtils.readUnsignedShort(newClass, debugNewUtf8ItemOffset - 2);
-                    System.out.println("[" + currentThread() + "] new value: " + ClassFileUtils.utf8ToString(newClass, debugNewUtf8ItemOffset, debugNewUtf8ItemOffset + debugNewUtf8ItemLength));
+                if (verbose) {
+                    debugOldUtf8ItemOffset = oldClassOffset;
+                    debugNewUtf8ItemOffset = newClassOffset;
+                }
+                // patch utf8 item length
+                oldUtf8ItemLength = ClassFileUtils.readUnsignedShort(oldClass, oldClassOffset - 2);
+                ClassFileUtils.writeUnsignedShort(newClass, newClassOffset - 2, oldUtf8ItemLength + utf8ItemPatch[1]);
+                // apply utf8 info bytes section patches
+                for (int i = 2; i < utf8ItemPatch.length;) {
+                    mappingIndex = utf8ItemPatch[i++];
+                    if (mappingIndex == 0) {
+                        break;
+                    }
+                    patchOffset = utf8ItemPatch[i++];
+                    // copy till begin of patch
+                    length = patchOffset - (oldClassOffset - oldUtf8ItemBytesSectionOffset);
+                    arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
+                    oldClassOffset += length;
+                    newClassOffset += length;
+                    // apply patch
+                    arraycopy(utf8Mapping.to[mappingIndex], 0, newClass, newClassOffset, utf8Mapping.to[mappingIndex].length);
+                    oldClassOffset += utf8Mapping.from[mappingIndex].length;
+                    newClassOffset += utf8Mapping.to[mappingIndex].length;
+                }
+                // copy remaining class byte code till utf8 item end
+                length = oldUtf8ItemBytesSectionOffset + oldUtf8ItemLength - oldClassOffset;
+                arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
+                oldClassOffset += length;
+                newClassOffset += length;
+                if (verbose) {
+                    synchronized (System.out) {
+                        System.out.println("[" + currentThread() + "] Patching UTF-8 constant pool item on position: " + utf8ItemPatch[0]);
+                        debugOldUtf8ItemLength = ClassFileUtils.readUnsignedShort(oldClass, debugOldUtf8ItemOffset - 2);
+                        System.out.println("[" + currentThread() + "] old value: " + ClassFileUtils.utf8ToString(oldClass, debugOldUtf8ItemOffset, debugOldUtf8ItemOffset + debugOldUtf8ItemLength));
+                        debugNewUtf8ItemLength = ClassFileUtils.readUnsignedShort(newClass, debugNewUtf8ItemOffset - 2);
+                        System.out.println("[" + currentThread() + "] new value: " + ClassFileUtils.utf8ToString(newClass, debugNewUtf8ItemOffset, debugNewUtf8ItemOffset + debugNewUtf8ItemLength));
+                    }
                 }
             }
         }
@@ -307,58 +326,64 @@ final class ResourceTransformerImpl extends ResourceTransformer {
         int debugOldCodeAttributeCodeLength = -1, debugNewCodeAttributeCodeLength = -1;
         MethodsPatch methodsPatch = methodsRedirectPatch != null ? methodsRedirectPatch.methodsPatch : null; // either first patch
         methodsPatch = methodsPatch == null ? (applyMappingsPatch != null ? applyMappingsPatch.methodsPatch : null) : null; // or second patch
-        if (methodsPatch != null) for (int[] methodPatch : methodsPatch.methodPatches) {
-            if (methodPatch == null) break;
-            methodInfo = oldClassRefs.getMethod(methodPatch[0]);
-            codeAttribute = methodInfo.getCodeAttribute();
-            oldMethodInfoCodeAttributeCodeOffset = codeAttribute.getCodeStartRef();
-            // copy till start of next code_attribute code section
-            length = oldMethodInfoCodeAttributeCodeOffset - oldClassOffset;
-            arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
-            oldClassOffset += length;
-            newClassOffset += length;
-            if (verbose) {
-                debugOldCodeAttributeCodeOffset = oldClassOffset;
-                debugNewCodeAttributeCodeOffset = newClassOffset;
-            }
-            // patch code attribute length
-            oldCodeAttributeLength = ClassFileUtils.readUnsignedInt(oldClass, oldClassOffset - 12);
-            ClassFileUtils.writeUnsignedInt(newClass, newClassOffset - 12, oldCodeAttributeLength + methodPatch[1]);
-            // patch code attribute code length
-            oldCodeAttributeCodeLength = ClassFileUtils.readUnsignedInt(oldClass, oldClassOffset - 4);
-            ClassFileUtils.writeUnsignedInt(newClass, newClassOffset - 4, oldCodeAttributeCodeLength + methodPatch[1]);
-            // TODO: patch here max_stack & max_locals
-            // apply code attribute code section patches
-            for (int i = 4; i < methodPatch.length;) {
-                mappingIndex = methodPatch[i++];
-                if (mappingIndex == 0) break;
-                patchOffset = methodPatch[i++];
-                // copy till begin of patch
-                length = patchOffset - (oldClassOffset - oldMethodInfoCodeAttributeCodeOffset);
+        if (methodsPatch != null) {
+            for (int[] methodPatch : methodsPatch.methodPatches) {
+                if (methodPatch == null) {
+                    break;
+                }
+                methodInfo = oldClassRefs.getMethod(methodPatch[0]);
+                codeAttribute = methodInfo.getCodeAttribute();
+                oldMethodInfoCodeAttributeCodeOffset = codeAttribute.getCodeStartRef();
+                // copy till start of next code_attribute code section
+                length = oldMethodInfoCodeAttributeCodeOffset - oldClassOffset;
                 arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
                 oldClassOffset += length;
                 newClassOffset += length;
-                // apply patch
-                arraycopy(methodsPatch.mappingTo[mappingIndex], 0, newClass, newClassOffset, methodsPatch.mappingTo[mappingIndex].length);
-                oldClassOffset += methodsPatch.mappingFrom[mappingIndex].length;
-                newClassOffset += methodsPatch.mappingTo[mappingIndex].length;
-            }
-            // copy remaining class byte code till code attribute end
-            length = oldMethodInfoCodeAttributeCodeOffset + oldCodeAttributeLength - oldClassOffset;
-            arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
-            oldClassOffset += length;
-            newClassOffset += length;
-            if (verbose) {
-                synchronized (System.out) {
-                    System.out.println("[" + currentThread() + "] Patching method implementation '" + oldClassRefs.getConstantPool().getUtf8AsString(methodInfo.getNameIndex()) + "' on position: " + methodPatch[0]);
-                    debugOldCodeAttributeCodeLength = ClassFileUtils.readUnsignedInt(oldClass, debugOldCodeAttributeCodeOffset - 4);
-                    System.out.print("[" + currentThread() + "] Old implementation bytecode: ");
-                    OpcodeUtils.printMethodByteCode(oldClass, debugOldCodeAttributeCodeOffset, debugOldCodeAttributeCodeLength);
-                    System.out.println();
-                    debugNewCodeAttributeCodeLength = ClassFileUtils.readUnsignedInt(newClass, debugNewCodeAttributeCodeOffset - 4);
-                    System.out.print("[" + currentThread() + "] New implementation bytecode: ");
-                    OpcodeUtils.printMethodByteCode(newClass, debugNewCodeAttributeCodeOffset, debugNewCodeAttributeCodeLength);
-                    System.out.println();
+                if (verbose) {
+                    debugOldCodeAttributeCodeOffset = oldClassOffset;
+                    debugNewCodeAttributeCodeOffset = newClassOffset;
+                }
+                // patch code attribute length
+                oldCodeAttributeLength = ClassFileUtils.readUnsignedInt(oldClass, oldClassOffset - 12);
+                ClassFileUtils.writeUnsignedInt(newClass, newClassOffset - 12, oldCodeAttributeLength + methodPatch[1]);
+                // patch code attribute code length
+                oldCodeAttributeCodeLength = ClassFileUtils.readUnsignedInt(oldClass, oldClassOffset - 4);
+                ClassFileUtils.writeUnsignedInt(newClass, newClassOffset - 4, oldCodeAttributeCodeLength + methodPatch[1]);
+                // TODO: patch here max_stack & max_locals
+                // apply code attribute code section patches
+                for (int i = 4; i < methodPatch.length;) {
+                    mappingIndex = methodPatch[i++];
+                    if (mappingIndex == 0) {
+                        break;
+                    }
+                    patchOffset = methodPatch[i++];
+                    // copy till begin of patch
+                    length = patchOffset - (oldClassOffset - oldMethodInfoCodeAttributeCodeOffset);
+                    arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
+                    oldClassOffset += length;
+                    newClassOffset += length;
+                    // apply patch
+                    arraycopy(methodsPatch.mappingTo[mappingIndex], 0, newClass, newClassOffset, methodsPatch.mappingTo[mappingIndex].length);
+                    oldClassOffset += methodsPatch.mappingFrom[mappingIndex].length;
+                    newClassOffset += methodsPatch.mappingTo[mappingIndex].length;
+                }
+                // copy remaining class byte code till code attribute end
+                length = oldMethodInfoCodeAttributeCodeOffset + oldCodeAttributeLength - oldClassOffset;
+                arraycopy(oldClass, oldClassOffset, newClass, newClassOffset, length);
+                oldClassOffset += length;
+                newClassOffset += length;
+                if (verbose) {
+                    synchronized (System.out) {
+                        System.out.println("[" + currentThread() + "] Patching method implementation '" + oldClassRefs.getConstantPool().getUtf8AsString(methodInfo.getNameIndex()) + "' on position: " + methodPatch[0]);
+                        debugOldCodeAttributeCodeLength = ClassFileUtils.readUnsignedInt(oldClass, debugOldCodeAttributeCodeOffset - 4);
+                        System.out.print("[" + currentThread() + "] Old implementation bytecode: ");
+                        OpcodeUtils.printMethodByteCode(oldClass, debugOldCodeAttributeCodeOffset, debugOldCodeAttributeCodeLength);
+                        System.out.println();
+                        debugNewCodeAttributeCodeLength = ClassFileUtils.readUnsignedInt(newClass, debugNewCodeAttributeCodeOffset - 4);
+                        System.out.print("[" + currentThread() + "] New implementation bytecode: ");
+                        OpcodeUtils.printMethodByteCode(newClass, debugNewCodeAttributeCodeOffset, debugNewCodeAttributeCodeLength);
+                        System.out.println();
+                    }
                 }
             }
         }

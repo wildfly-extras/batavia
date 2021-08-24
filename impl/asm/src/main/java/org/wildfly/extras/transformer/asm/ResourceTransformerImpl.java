@@ -76,8 +76,8 @@ final class ResourceTransformerImpl extends ResourceTransformer {
     private String changeClassName;
     final Set<String> generatedReflectionModelHandlingCode = new CopyOnWriteArraySet<>();
 
-    ResourceTransformerImpl(final File configsDir, final boolean verbose) throws IOException {
-        super(configsDir, verbose);
+    ResourceTransformerImpl(final File configsDir, final boolean verbose, final boolean invert) throws IOException {
+        super(configsDir, verbose, invert);
     }
 
     /**
