@@ -36,10 +36,12 @@ public abstract class ArchiveTransformer {
 
     protected final File configsDir;
     protected final boolean verbose;
+    protected final boolean invert;
 
-    protected ArchiveTransformer(final File configsDir, final boolean verbose) {
+    protected ArchiveTransformer(final File configsDir, final boolean verbose, final boolean invert) {
         this.configsDir = configsDir;
         this.verbose = verbose;
+        this.invert = invert;
     }
 
     /**

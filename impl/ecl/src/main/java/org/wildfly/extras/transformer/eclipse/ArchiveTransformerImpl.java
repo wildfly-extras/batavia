@@ -41,8 +41,8 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
     public static final String DEFAULT_PER_CLASS_REFERENCE = "jakarta-per-class.properties";
     public static final String DEFAULT_DIRECT_REFERENCE = "jakarta-direct.properties";
 
-    ArchiveTransformerImpl(final File configsDir, final boolean verbose) {
-        super(configsDir, verbose);
+    ArchiveTransformerImpl(final File configsDir, final boolean verbose, final boolean invert) {
+        super(configsDir, verbose, invert);
     }
 
     private Map<Transformer.AppOption, String> getOptionDefaults() {
@@ -91,6 +91,9 @@ final class ArchiveTransformerImpl extends ArchiveTransformer {
                 args.add("-v");
             } else {
                 args.add("--quiet");
+            }
+            if(invert) {
+                args.add("-i");
             }
             String[] array = new String[args.size()];
             transformed = transform(args.toArray(array), true);

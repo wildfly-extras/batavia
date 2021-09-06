@@ -38,7 +38,7 @@ final class HandleTransformation {
      *
      * @param folder represents a filesystem path that contains files/subfolders to be transformed.
      */
-    static void transformDirectory(final File folder, final File targetFolder, final String configsDir, final boolean verbose, final boolean overwrite) throws IOException {
+    static void transformDirectory(final File folder, final File targetFolder, final String configsDir, final boolean verbose, final boolean overwrite, boolean invert) throws IOException {
         final File[] files = folder.listFiles();
         if (files == null) {
             return;
@@ -47,21 +47,21 @@ final class HandleTransformation {
             File targetFile = new File(targetFolder, sourceFile.getName());
 
             if (sourceFile.isDirectory()) {
-                transformDirectory(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, overwrite);
+                transformDirectory(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, overwrite, invert);
             } else {
                 if (targetFile.exists()) {
                     if (overwrite) {
                         targetFile.delete();
-                        transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose);
+                        transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, invert);
                     }
                 } else {
-                    transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose);
+                    transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, invert);
                 }
             }
         }
     }
 
-    static void transformFile(final File sourceFile, final File targetFile, final String configsDir, final boolean verbose) throws IOException {
+    static void transformFile(final File sourceFile, final File targetFile, final String configsDir, final boolean verbose, final boolean invert) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
         }
@@ -70,6 +70,7 @@ final class HandleTransformation {
             builder.setConfigsDir(configsDir);
         }
         builder.setVerbose(verbose);
+        builder.setInvert(invert);
         ArchiveTransformer transformer = builder.build();
         if (transformer.canTransformIndividualClassFile() || sourceFile.getName().endsWith(JAR_FILE_EXT)) {
             Files.createDirectories(targetFile.toPath().getParent());

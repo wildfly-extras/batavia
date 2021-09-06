@@ -65,6 +65,9 @@ public class SourceTransformerMojo extends AbstractMojo {
 
     @Parameter(property = "overwrite", required = false, defaultValue = "false")
     private boolean overwrite;
+    
+    @Parameter(property = "invert", required = false, defaultValue = "false")
+    private boolean invert;
 
     @Parameter(required = false, readonly = true)
     private String outputFolder;
@@ -77,7 +80,7 @@ public class SourceTransformerMojo extends AbstractMojo {
                 File outputDir = getOutputDirectory(lifecyclePhase);
                 try {
                     getLog().info("Transforming contents of folder " + inputFile + " to " + outputDir);
-                    HandleTransformation.transformDirectory(inputFile, outputDir, configsDir, getLog().isDebugEnabled(), overwrite);
+                    HandleTransformation.transformDirectory(inputFile, outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
                     switch (lifecyclePhase) {
                         case GENERATE_SOURCES:
                             mavenProject.addCompileSourceRoot(new File(outputDir, inputFile.getName()).getAbsolutePath());
@@ -106,21 +109,21 @@ public class SourceTransformerMojo extends AbstractMojo {
                 if (Files.exists(input) && Files.isDirectory(input)) {
                     File outputDir = getOutputDirectory(GENERATE_SOURCES);
                     getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite);
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
                     mavenProject.addCompileSourceRoot(outputDir.getAbsolutePath());
                 }
                 input = sourceProjectPath.resolve("src").resolve("test").resolve("java");
                 if (Files.exists(input) && Files.isDirectory(input)) {
                     File outputDir = getOutputDirectory(GENERATE_TEST_SOURCES);
                     getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite);
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
                     mavenProject.addTestCompileSourceRoot(outputDir.getAbsolutePath());
                 }
                 input = sourceProjectPath.resolve("src").resolve("main").resolve("resources");
                 if (Files.exists(input) && Files.isDirectory(input)) {
                     File outputDir = getOutputDirectory(GENERATE_RESOURCES);
                     getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite);
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
                     Resource resource = new Resource();
                     resource.setDirectory(outputDir.getAbsolutePath());
                     mavenProject.addResource(resource);
@@ -129,7 +132,7 @@ public class SourceTransformerMojo extends AbstractMojo {
                 if (Files.exists(input) && Files.isDirectory(input)) {
                     File outputDir = getOutputDirectory(GENERATE_TEST_RESOURCES);
                     getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite);
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
                     Resource testResource = new Resource();
                     testResource.setDirectory(outputDir.getAbsolutePath());
                     mavenProject.addTestResource(testResource);

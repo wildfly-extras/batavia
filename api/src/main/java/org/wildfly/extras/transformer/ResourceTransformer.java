@@ -25,12 +25,14 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Resource transformer tries to convert given resource to another resource(s) by applying configured transformation rules.
+ * Resource transformer tries to convert given resource to another resource(s) by applying configured transformation
+ * rules.
  * Cannot be used concurrently by multiple threads as instances of this class are not thread safe.
  *
  * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
 public abstract class ResourceTransformer {
+
     private static final String DEFAULT_CONFIG = "default.mapping";
     private static final int MAX_MAPPINGS = 0xFFFF;
     private static final char DOT = '.';
@@ -38,9 +40,11 @@ public abstract class ResourceTransformer {
     protected final Map<String, String> mappingWithSeps = new HashMap<>();
     protected final Map<String, String> mappingWithDots = new HashMap<>();
     protected final boolean verbose;
+    protected final boolean invert;
 
-    protected ResourceTransformer(final File configsDir, final boolean verbose) throws IOException {
+    protected ResourceTransformer(final File configsDir, final boolean verbose, final boolean invert) throws IOException {
         this.verbose = verbose;
+        this.invert = invert;
         final InputStream mappingFile;
         final File userConfig = new File(configsDir, DEFAULT_CONFIG);
         if (userConfig.exists() && userConfig.isFile()) {
@@ -48,7 +52,9 @@ public abstract class ResourceTransformer {
         } else {
             mappingFile = ResourceTransformer.class.getResourceAsStream(SEP + DEFAULT_CONFIG);
         }
-        if (mappingFile == null) throw new IllegalArgumentException("Couldn't find specified config file neither on file system nor on class path");
+        if (mappingFile == null) {
+            throw new IllegalArgumentException("Couldn't find specified config file neither on file system nor on class path");
+        }
         try {
             final Properties packagesMapping = new Properties();
             packagesMapping.load(mappingFile);
@@ -58,9 +64,15 @@ public abstract class ResourceTransformer {
                 if (to.indexOf(DOT) != -1 || from.indexOf(DOT) != -1) {
                     throw new IllegalArgumentException("Packages mapping config file must be property file in path separator format only");
                 }
-                addMapping(from, to);
+                if (invert) {
+                    addMapping(to, from);
+                } else {
+                    addMapping(from, to);
+                }
             }
-            if (mappingWithSeps.size() == 0) throw new IllegalStateException("No mapping was defined in packages mapping config file");
+            if (mappingWithSeps.isEmpty()) {
+                throw new IllegalStateException("No mapping was defined in packages mapping config file");
+            }
         } finally {
             safeClose(mappingFile);
         }
@@ -68,19 +80,34 @@ public abstract class ResourceTransformer {
 
     private static void safeClose(final Closeable c) {
         try {
-            if (c != null) c.close();
-        } catch (final Throwable ignored) {}
+            if (c != null) {
+                c.close();
+            }
+        } catch (final Throwable ignored) {
+        }
     }
 
     private void addMapping(final String from, final String to) {
-        if (from == null || to == null) throw new IllegalArgumentException("Package definition cannot be null");
-        if (from.length() == 0 || to.length() == 0) throw new IllegalArgumentException("Package definition cannot be empty string");
-        if (from.equals(to)) throw new IllegalArgumentException("Identical package mapping detected: " + from + " -> " + to);
-        for (String key : mappingWithSeps.keySet()) {
-            if (key.contains(from)) throw new IllegalArgumentException("Package " + from + " is substring of package " + key);
-            if (from.contains(key)) throw new IllegalArgumentException("Package " + key + " is substring of package " + from);
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("Package definition cannot be null");
         }
-        if (mappingWithSeps.size() > MAX_MAPPINGS) throw new IllegalStateException("Packages mapping count exceeded value " + MAX_MAPPINGS);
+        if (from.length() == 0 || to.length() == 0) {
+            throw new IllegalArgumentException("Package definition cannot be empty string");
+        }
+        if (from.equals(to)) {
+            throw new IllegalArgumentException("Identical package mapping detected: " + from + " -> " + to);
+        }
+        for (String key : mappingWithSeps.keySet()) {
+            if (key.contains(from)) {
+                throw new IllegalArgumentException("Package " + from + " is substring of package " + key);
+            }
+            if (from.contains(key)) {
+                throw new IllegalArgumentException("Package " + key + " is substring of package " + from);
+            }
+        }
+        if (mappingWithSeps.size() > MAX_MAPPINGS) {
+            throw new IllegalStateException("Packages mapping count exceeded value " + MAX_MAPPINGS);
+        }
         mappingWithSeps.put(from, to);
         mappingWithDots.put(from.replace(SEP, DOT), to.replace(SEP, DOT));
     }
@@ -95,9 +122,11 @@ public abstract class ResourceTransformer {
      * and other resources (since array index of <code>1</code> including) represent additional resources
      * created dynamically that must be added to target environment (e.g. jar archive or defining class loader).
      *
-     * @param r the resource to be transformed. The buffer returned by {@link Resource#getData()} method must not be modified.
+     * @param r the resource to be transformed. The buffer returned by {@link Resource#getData()} method must not be
+     * modified.
      * @return either <code>empty array</code> if no transformation is performed or
-     * a new resource (or multiple resources) representing transformed resource (or potentially additional created resources)
+     * a new resource (or multiple resources) representing transformed resource (or potentially additional created
+     * resources)
      */
     protected abstract Resource[] transform(final Resource r);
 
@@ -105,22 +134,27 @@ public abstract class ResourceTransformer {
      * Resource data.
      */
     public static final class Resource {
+
         private final String name;
         private final byte[] data;
 
         /**
          * Constructor
+         *
          * @param name resource name
          * @param data resource data
          */
         public Resource(final String name, final byte[] data) {
-            if (name == null || data == null) throw new NullPointerException();
+            if (name == null || data == null) {
+                throw new NullPointerException();
+            }
             this.name = name;
             this.data = data;
         }
 
         /**
          * Gets resource name.
+         *
          * @return resource name
          */
         public String getName() {
@@ -129,6 +163,7 @@ public abstract class ResourceTransformer {
 
         /**
          * Gets resource data. The byte buffer returned by this method must not be modified.
+         *
          * @return resource data
          */
         public byte[] getData() {

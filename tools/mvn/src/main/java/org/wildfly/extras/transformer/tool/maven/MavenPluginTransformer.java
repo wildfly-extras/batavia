@@ -57,6 +57,9 @@ public class MavenPluginTransformer extends AbstractMojo {
     @Parameter(defaultValue = "${project.compileClasspathElements}", required = true, readonly = true)
     private List<String> compileClasspathElements;
 
+    @Parameter(property = "invert", required = false, defaultValue = "false")
+    private boolean invert;
+
     /**
      * Specifying the inputFile + outputFile, is kind of an experiment to allow the maven plugin to
      * transform a specific input file, into an output directory. It will be done in addition to maven processing.
@@ -78,7 +81,7 @@ public class MavenPluginTransformer extends AbstractMojo {
         if (inputFile != null && inputFile.isFile() && outputFile != null) {
             try {
                 getLog().info("transforming specific input " + inputFile.getAbsolutePath() + " into " + outputFile.getAbsolutePath());
-                HandleTransformation.transformFile(inputFile, outputFile, configsDir, getLog().isDebugEnabled());
+                HandleTransformation.transformFile(inputFile, outputFile, configsDir, getLog().isDebugEnabled(), invert);
                 return;
             } catch (IOException e) {
                 throw new MojoExecutionException(e.getMessage(), e);
@@ -94,7 +97,7 @@ public class MavenPluginTransformer extends AbstractMojo {
             if (outputDirectory.isDirectory()) {
                 try {
                     getLog().info("Transforming contents of folder " + inputFile + " to " + outputFolder);
-                    HandleTransformation.transformDirectory(inputFile, outputDirectory, configsDir, getLog().isDebugEnabled(), overwrite);
+                    HandleTransformation.transformDirectory(inputFile, outputDirectory, configsDir, getLog().isDebugEnabled(), overwrite, invert);
                     return;
                 } catch (IOException e) {
                     throw new MojoExecutionException(e.getMessage(), e);
@@ -117,7 +120,7 @@ public class MavenPluginTransformer extends AbstractMojo {
             File outputFile = new File(outputDir, inputFile.getName());
             getLog().info("transforming " + inputFile.getAbsolutePath() + " into " + outputFile.getAbsolutePath());
             try {
-                HandleTransformation.transformFile(inputFile, outputFile, configsDir, getLog().isDebugEnabled());
+                HandleTransformation.transformFile(inputFile, outputFile, configsDir, getLog().isDebugEnabled(), invert);
                 if (outputDir.exists()) {
                     getLog().info("transformer generated output file " + outputFile.getAbsolutePath() + " "
                             + " outputFile size = " + outputFile.length());
