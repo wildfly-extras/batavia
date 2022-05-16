@@ -24,6 +24,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -105,38 +110,11 @@ public class SourceTransformerMojo extends AbstractMojo {
             } else if (sourceProject != null && sourceProject.isDirectory()) {
                 getLog().info("Transforming contents of project " + sourceProject);
                 Path sourceProjectPath = sourceProject.toPath();
-                Path input = sourceProjectPath.resolve("src").resolve("main").resolve("java");
-                if (Files.exists(input) && Files.isDirectory(input)) {
-                    File outputDir = getOutputDirectory(GENERATE_SOURCES);
-                    getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
-                    mavenProject.addCompileSourceRoot(outputDir.getAbsolutePath());
-                }
-                input = sourceProjectPath.resolve("src").resolve("test").resolve("java");
-                if (Files.exists(input) && Files.isDirectory(input)) {
-                    File outputDir = getOutputDirectory(GENERATE_TEST_SOURCES);
-                    getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
-                    mavenProject.addTestCompileSourceRoot(outputDir.getAbsolutePath());
-                }
-                input = sourceProjectPath.resolve("src").resolve("main").resolve("resources");
-                if (Files.exists(input) && Files.isDirectory(input)) {
-                    File outputDir = getOutputDirectory(GENERATE_RESOURCES);
-                    getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
-                    Resource resource = new Resource();
-                    resource.setDirectory(outputDir.getAbsolutePath());
-                    mavenProject.addResource(resource);
-                }
-                input = sourceProjectPath.resolve("src").resolve("test").resolve("resources");
-                if (Files.exists(input) && Files.isDirectory(input)) {
-                    File outputDir = getOutputDirectory(GENERATE_TEST_RESOURCES);
-                    getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
-                    Resource testResource = new Resource();
-                    testResource.setDirectory(outputDir.getAbsolutePath());
-                    mavenProject.addTestResource(testResource);
-                }
+                final Path baseDir = mavenProject.getBasedir().getCanonicalFile().toPath();
+                transformSources(baseDir, sourceProjectPath, GENERATE_SOURCES);
+                transformSources(baseDir, sourceProjectPath, GENERATE_TEST_SOURCES);
+                transformSources(baseDir, sourceProjectPath, GENERATE_RESOURCES);
+                transformSources(baseDir, sourceProjectPath, GENERATE_TEST_RESOURCES);
             }
         } catch (IOException ioex) {
             throw new MojoExecutionException("Error transforming code", ioex);
@@ -154,6 +132,77 @@ public class SourceTransformerMojo extends AbstractMojo {
             return GENERATE_TEST_RESOURCES;
         }
         return GENERATE_SOURCES;
+    }
+
+    private void transformSources(Path baseDir, Path sourceProjectPath, LifecyclePhase lifecyclePhase) throws IOException {
+        List<String> roots = getSourceRoots(lifecyclePhase);
+        getLog().debug(lifecyclePhase + " roots are " + roots);
+        File outputDir = null;
+        for (String rawRoot : roots) {
+            Path canonicalRoot = new File(rawRoot).getCanonicalFile().toPath();
+            if (canonicalRoot.startsWith(baseDir)) {
+                Path relative = baseDir.relativize(canonicalRoot);
+                Path input = sourceProjectPath.resolve(relative);
+                if (Files.exists(input) && Files.isDirectory(input)) {
+                    outputDir = getOutputDirectory(lifecyclePhase);
+                    getLog().info("Transforming contents of folder " + input + " to " + outputDir);
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
+
+                }
+            } else {
+                // TODO perhaps we could transform source that's external to the project directory
+                getLog().info("Source folder " + rawRoot + " is not relative to " + baseDir + " -- skipping transformation");
+            }
+        }
+        if (outputDir != null) {
+            switch (lifecyclePhase) {
+                case GENERATE_TEST_SOURCES:
+                    mavenProject.addTestCompileSourceRoot(outputDir.getAbsolutePath());
+                    break;
+                case GENERATE_RESOURCES:
+                    Resource resource = new Resource();
+                    resource.setDirectory(outputDir.getAbsolutePath());
+                    mavenProject.addResource(resource);
+                    break;
+                case GENERATE_TEST_RESOURCES:
+                    Resource testResource = new Resource();
+                    testResource.setDirectory(outputDir.getAbsolutePath());
+                    mavenProject.addTestResource(testResource);
+                    break;
+                case GENERATE_SOURCES:
+                default:
+                    mavenProject.addCompileSourceRoot(outputDir.getAbsolutePath());
+                    break;
+            }
+        }
+    }
+
+    private List<String> getSourceRoots(LifecyclePhase phase) {
+        List<String> result = null;
+        List<Resource> resources = null;
+        switch (phase) {
+            case GENERATE_TEST_SOURCES:
+                result = mavenProject.getTestCompileSourceRoots();
+                break;
+            case GENERATE_RESOURCES:
+                resources = mavenProject.getResources();
+                break;
+            case GENERATE_TEST_RESOURCES:
+                resources = mavenProject.getTestResources();
+                break;
+            case GENERATE_SOURCES:
+            default:
+                result = mavenProject.getCompileSourceRoots();
+                break;
+        }
+        if (result == null) {
+            if (resources != null) {
+                result = resources.stream().map(Resource::getDirectory).collect(Collectors.toList());
+            } else {
+                result = Collections.emptyList();
+            }
+        }
+        return result;
     }
 
     private File getOutputDirectory(LifecyclePhase phase) throws IOException {
