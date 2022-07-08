@@ -22,6 +22,8 @@ import org.wildfly.extras.transformer.ArchiveTransformer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * HandleTransformation
@@ -39,6 +41,16 @@ final class HandleTransformation {
      * @param folder represents a filesystem path that contains files/subfolders to be transformed.
      */
     static void transformDirectory(final File folder, final File targetFolder, final String configsDir, final boolean verbose, final boolean overwrite, boolean invert) throws IOException {
+        transformDirectory(folder, targetFolder, configsDir, verbose, overwrite, invert, Collections.emptySet());
+    }
+
+    /**
+     * Transform the files contained under the folder path specified.
+     *
+     * @param folder represents a filesystem path that contains files/subfolders to be transformed.
+     */
+    static void transformDirectory(final File folder, final File targetFolder, final String configsDir, final boolean verbose, final boolean overwrite, boolean invert, final
+                                   Set<String> ignored) throws IOException {
         final File[] files = folder.listFiles();
         if (files == null) {
             return;
@@ -47,23 +59,34 @@ final class HandleTransformation {
             File targetFile = new File(targetFolder, sourceFile.getName());
 
             if (sourceFile.isDirectory()) {
-                transformDirectory(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, overwrite, invert);
+                transformDirectory(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, overwrite, invert, ignored);
             } else {
                 if (targetFile.exists()) {
                     if (overwrite) {
                         targetFile.delete();
-                        transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, invert);
+                        transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, invert, ignored);
                     }
                 } else {
-                    transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, invert);
+                    transformFile(sourceFile, new File(targetFolder, sourceFile.getName()), configsDir, verbose, invert, ignored);
                 }
             }
         }
     }
 
     static void transformFile(final File sourceFile, final File targetFile, final String configsDir, final boolean verbose, final boolean invert) throws IOException {
+        transformFile(sourceFile, targetFile, configsDir, verbose, invert, Collections.emptySet());
+    }
+
+    static void transformFile(final File sourceFile, final File targetFile, final String configsDir, final boolean verbose, final boolean invert, Set<String> ignored) throws IOException {
         if (!sourceFile.exists()) {
             throw new IllegalArgumentException("input file " + sourceFile.getName() + " does not exist");
+        }
+        // Check if this is an ignored file
+        final String path = sourceFile.getPath();
+        for (String ignore : ignored) {
+            if (path.endsWith(ignore)) {
+                return;
+            }
         }
         TransformerBuilder builder = TransformerFactory.getInstance().newTransformer();
         if (configsDir != null) {
