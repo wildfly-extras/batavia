@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -88,8 +89,6 @@ public class SourceTransformerMojo extends AbstractMojo {
     @Parameter(alias = "ignore-existing", defaultValue = "true", property = "transform.ignore.existing")
     private boolean ignoreExisting;
 
-    private Set<String> ignored;
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         LifecyclePhase lifecyclePhase = valueOf(execution.getLifecyclePhase());
@@ -98,7 +97,7 @@ public class SourceTransformerMojo extends AbstractMojo {
                 File outputDir = getOutputDirectory(lifecyclePhase);
                 try {
                     getLog().info("Transforming contents of folder " + inputFile + " to " + outputDir);
-                    HandleTransformation.transformDirectory(inputFile, outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert, getIgnored());
+                    HandleTransformation.transformDirectory(inputFile, outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert, getIgnored(lifecyclePhase));
                     switch (lifecyclePhase) {
                         case GENERATE_SOURCES:
                             mavenProject.addCompileSourceRoot(new File(outputDir, inputFile.getName()).getAbsolutePath());
@@ -159,7 +158,7 @@ public class SourceTransformerMojo extends AbstractMojo {
                 if (Files.exists(input) && Files.isDirectory(input)) {
                     outputDir = getOutputDirectory(lifecyclePhase);
                     getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert, getIgnored());
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert, getIgnored(lifecyclePhase));
 
                 }
             } else {
@@ -245,24 +244,44 @@ public class SourceTransformerMojo extends AbstractMojo {
         return outputDirectory.toFile();
     }
 
-    private Set<String> getIgnored() throws IOException {
+    private Set<String> getIgnored(LifecyclePhase phase) throws IOException {
         if (!ignoreExisting) {
             return Collections.emptySet();
         }
-        if (ignored == null) {
-            ignored = new HashSet<>();
-            final Path sourceDirectory = Paths.get(mavenProject.getBuild().getSourceDirectory());
-            if (Files.exists(sourceDirectory)) {
-                // Walk the path for the source files to ignore
-                Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<Path>() {
-                    @Override
-                    public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
-                        ignored.add(sourceDirectory.relativize(file).toString());
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            }
+        switch (phase) {
+            case GENERATE_SOURCES:
+                return getSourceFiles(Paths.get(mavenProject.getBuild().getSourceDirectory()));
+            case GENERATE_TEST_SOURCES:
+                return getSourceFiles(Paths.get(mavenProject.getBuild().getTestSourceDirectory()));
+            case GENERATE_RESOURCES:
+                return getSourceFiles(mavenProject.getResources());
+            case GENERATE_TEST_RESOURCES:
+                return getSourceFiles(mavenProject.getTestResources());
         }
-        return ignored;
+        // There is nothing being transformed, therefore nothing to be ignored.
+        return Collections.emptySet();
+    }
+
+    private Set<String> getSourceFiles(final Path sourceDirectory) throws IOException {
+        final Set<String> sourceFiles = new HashSet<>();
+        if (Files.exists(sourceDirectory)) {
+            // Walk the path for the source files to ignore
+            Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+                    sourceFiles.add(sourceDirectory.relativize(file).toString());
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+        return sourceFiles;
+    }
+
+    private Set<String> getSourceFiles(final Collection<Resource> resources) throws IOException {
+        final Set<String> sourceFiles = new HashSet<>();
+        for (Resource resource : resources) {
+            sourceFiles.addAll(getSourceFiles(Paths.get(resource.getDirectory())));
+        }
+        return sourceFiles;
     }
 }
