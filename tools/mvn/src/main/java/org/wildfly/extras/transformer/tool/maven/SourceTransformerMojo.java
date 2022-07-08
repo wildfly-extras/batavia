@@ -24,17 +24,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.maven.model.Resource;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -47,10 +43,7 @@ import org.apache.maven.project.MavenProject;
  * @author Emmanuel Hugonnet (c) 2021 Red Hat, Inc.
  */
 @Mojo(name = "transform-sources", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
-public class SourceTransformerMojo extends AbstractMojo {
-
-    @Component
-    protected MojoExecution execution;
+public class SourceTransformerMojo extends AbstractLifecyclePhaseTransformer {
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
@@ -77,9 +70,12 @@ public class SourceTransformerMojo extends AbstractMojo {
     @Parameter(required = false, readonly = true)
     private String outputFolder;
 
+    public SourceTransformerMojo() {
+        super(GENERATE_SOURCES, GENERATE_TEST_SOURCES, GENERATE_RESOURCES, GENERATE_TEST_RESOURCES);
+    }
+
     @Override
-    public void execute() throws MojoExecutionException, MojoFailureException {
-        LifecyclePhase lifecyclePhase = valueOf(execution.getLifecyclePhase());
+    public void execute(final LifecyclePhase lifecyclePhase) throws MojoExecutionException, MojoFailureException {
         try {
             if (inputFile != null && inputFile.isDirectory()) {
                 File outputDir = getOutputDirectory(lifecyclePhase);
@@ -119,19 +115,6 @@ public class SourceTransformerMojo extends AbstractMojo {
         } catch (IOException ioex) {
             throw new MojoExecutionException("Error transforming code", ioex);
         }
-    }
-
-    private LifecyclePhase valueOf(String phase) {
-        if (GENERATE_TEST_SOURCES.id().equals(phase)) {
-            return GENERATE_TEST_SOURCES;
-        }
-        if (GENERATE_RESOURCES.id().equals(phase)) {
-            return GENERATE_RESOURCES;
-        }
-        if (GENERATE_TEST_RESOURCES.id().equals(phase)) {
-            return GENERATE_TEST_RESOURCES;
-        }
-        return GENERATE_SOURCES;
     }
 
     private void transformSources(Path baseDir, Path sourceProjectPath, LifecyclePhase lifecyclePhase) throws IOException {
