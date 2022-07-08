@@ -22,11 +22,16 @@ import static org.apache.maven.plugins.annotations.LifecyclePhase.GENERATE_TEST_
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.maven.model.Resource;
@@ -77,6 +82,14 @@ public class SourceTransformerMojo extends AbstractMojo {
     @Parameter(required = false, readonly = true)
     private String outputFolder;
 
+    /**
+     * Ignore existing source files if they exist in this projects source directory.
+     */
+    @Parameter(alias = "ignore-existing", defaultValue = "true", property = "transform.ignore.existing")
+    private boolean ignoreExisting;
+
+    private Set<String> ignored;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         LifecyclePhase lifecyclePhase = valueOf(execution.getLifecyclePhase());
@@ -85,7 +98,7 @@ public class SourceTransformerMojo extends AbstractMojo {
                 File outputDir = getOutputDirectory(lifecyclePhase);
                 try {
                     getLog().info("Transforming contents of folder " + inputFile + " to " + outputDir);
-                    HandleTransformation.transformDirectory(inputFile, outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
+                    HandleTransformation.transformDirectory(inputFile, outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert, getIgnored());
                     switch (lifecyclePhase) {
                         case GENERATE_SOURCES:
                             mavenProject.addCompileSourceRoot(new File(outputDir, inputFile.getName()).getAbsolutePath());
@@ -146,7 +159,7 @@ public class SourceTransformerMojo extends AbstractMojo {
                 if (Files.exists(input) && Files.isDirectory(input)) {
                     outputDir = getOutputDirectory(lifecyclePhase);
                     getLog().info("Transforming contents of folder " + input + " to " + outputDir);
-                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert);
+                    HandleTransformation.transformDirectory(input.toFile(), outputDir, configsDir, getLog().isDebugEnabled(), overwrite, invert, getIgnored());
 
                 }
             } else {
@@ -230,5 +243,26 @@ public class SourceTransformerMojo extends AbstractMojo {
             Files.createDirectories(outputDirectory);
         }
         return outputDirectory.toFile();
+    }
+
+    private Set<String> getIgnored() throws IOException {
+        if (!ignoreExisting) {
+            return Collections.emptySet();
+        }
+        if (ignored == null) {
+            ignored = new HashSet<>();
+            final Path sourceDirectory = Paths.get(mavenProject.getBuild().getSourceDirectory());
+            if (Files.exists(sourceDirectory)) {
+                // Walk the path for the source files to ignore
+                Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+                        ignored.add(sourceDirectory.relativize(file).toString());
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+            }
+        }
+        return ignored;
     }
 }
