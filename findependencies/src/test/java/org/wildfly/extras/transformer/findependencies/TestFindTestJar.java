@@ -17,6 +17,7 @@
 package org.wildfly.extras.transformer.findependencies;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -26,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -48,8 +50,12 @@ public class TestFindTestJar {
     public void testProcessJar() throws Throwable {
         File ejbjar = fromTargetFile("dist/com/sun/ts/tests/jpa/jpa22/repeatable/convert/jpa_jpa22_repeatable_converts_stateless3_vehicle_ejb.jar");
         assertNotNull(ejbjar);
-        ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(null);
+        ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
         jTrans.transform(ejbjar);
+        Set<String> classnames =  ClassReference.getClassNames();
+        assertTrue(classnames.contains("jakarta/persistence/Persistence"), "expect to find jakarta/persistence/Persistence in " + classnames);
+
+        ClassReference.clear();
     }
 
 

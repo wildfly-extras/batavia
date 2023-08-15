@@ -36,11 +36,11 @@ final class ArchiveTransformerImpl {
     private static final String JSP_SUFFIX = ".jsp";
     private static final String META_INF_SERVICES_PREFIX = "META-INF/services/";
 
-    protected final File configsDir;
+    protected final ClassCollector classCollector;
 
 
-    ArchiveTransformerImpl(final File configsDir) {
-        this.configsDir = configsDir;
+    ArchiveTransformerImpl(final Filter filter) {
+        classCollector = new ClassCollector(filter);
     }
 
     private static void readBytes(final InputStream is, final byte[] clazz) throws IOException {
@@ -120,6 +120,7 @@ final class ArchiveTransformerImpl {
                 methodDescriptorIndex = cpRefs.getNameAndType_DescriptorIndex(methodNameAndTypeIndex);
                 String methodDescriptor = cpRefs.getUtf8AsString(methodDescriptorIndex);
                 System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
+                classCollector.addMethod(className, methodName, methodDescriptor);
             }
 
             if (cpRefs.isClassInfo(index)) {

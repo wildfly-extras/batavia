@@ -55,7 +55,11 @@ public class Filter {
      * @return
      */
     public boolean matchClassPackage(String checkIfClassNameMatches) {
-        return match.contains(checkIfClassNameMatches);
+        for (String check: match) {
+            if (checkIfClassNameMatches.contains(check))
+                return true;
+        }
+        return false;
     }
 
     public boolean matchDescriptor(String descriptor) {

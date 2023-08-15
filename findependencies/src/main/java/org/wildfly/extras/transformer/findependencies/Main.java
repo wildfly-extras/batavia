@@ -29,7 +29,7 @@ public final class Main {
     public static void main(final String... args) throws IOException {
 
         final File inJarFile = new File(args[1]);
-        ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(null);
+        ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
         jTrans.transform(inJarFile);
     }
 

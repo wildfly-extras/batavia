@@ -16,7 +16,9 @@
 
 package org.wildfly.extras.transformer.findependencies;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
 
 /**
  * ClassReference instance refers to a Java Class definition.
@@ -46,9 +48,6 @@ public class ClassReference {
     /**
      * Clear all Class references
      */
-    public void clear() {
-        classes.clear();
-    }
 
     public static ClassReference findClassName(String className) {
         ClassReference classReference = classes.get(className);
@@ -57,6 +56,10 @@ public class ClassReference {
             classes.put(className, classReference);
         }
         return classReference;
+    }
+
+    public static Set<String> getClassNames() {
+        return Collections.unmodifiableSet(classes.keySet()) ;
     }
 
     /**
@@ -101,6 +104,10 @@ public class ClassReference {
         fieldReference.addReference();
 
     }
+
+    public static void clear() {
+            classes.clear();
+        }
 
     static protected class MethodReference {
 
