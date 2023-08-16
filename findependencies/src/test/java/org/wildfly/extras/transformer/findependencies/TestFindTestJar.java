@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -39,6 +40,11 @@ import org.junit.jupiter.api.Test;
  * @author Scott Marlow
  */
 public class TestFindTestJar {
+
+    @AfterEach
+    public void cleanup() {
+        ClassReference.clear();
+    }
 
     @Test
     public void testJarDownload() {
@@ -54,8 +60,16 @@ public class TestFindTestJar {
         jTrans.transform(ejbjar);
         Set<String> classnames =  ClassReference.getClassNames();
         assertTrue(classnames.contains("jakarta/persistence/Persistence"), "expect to find jakarta/persistence/Persistence in " + classnames);
+    }
 
-        ClassReference.clear();
+    @Test
+    public void testEar() throws Throwable {
+        File ear = fromTargetFile("dist/com/sun/ts/tests/jpa/jpa22/repeatable/convert/jpa_jpa22_repeatable_converts_vehicles.ear");
+        assertNotNull(ear);
+        ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
+        jTrans.transform(ear);
+        Set<String> classnames =  ClassReference.getClassNames();
+        assertTrue(classnames.contains("jakarta/persistence/Persistence"), "expect to find jakarta/persistence/Persistence in " + classnames);
     }
 
 

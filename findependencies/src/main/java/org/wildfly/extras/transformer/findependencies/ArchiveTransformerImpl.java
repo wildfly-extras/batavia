@@ -16,6 +16,7 @@
 package org.wildfly.extras.transformer.findependencies;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
@@ -63,23 +64,39 @@ final class ArchiveTransformerImpl {
 
 
         JarFile jar = new JarFile(inJarFile);
-            for (final Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements();) {
-                // jar file entry preconditions
-                inJarEntry = e.nextElement();
-                if (inJarEntry.getSize() == 0) {
-                    continue; // directories
+        for (final Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
+            // jar file entry preconditions
+            inJarEntry = e.nextElement();
+            if (inJarEntry.getSize() == 0) {
+                continue; // directories
+            }
+            if (inJarEntry.getSize() < 0) {
+                throw new UnsupportedOperationException("File size " + inJarEntry.getName() + " unknown! File size must be positive number");
+            }
+            if (inJarEntry.getSize() > Integer.MAX_VALUE) {
+                throw new UnsupportedOperationException("File " + inJarEntry.getName() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
+            }
+
+            // reading original jar file entry
+            buffer = new byte[(int) inJarEntry.getSize()];
+            try (InputStream in = jar.getInputStream(inJarEntry)) {
+                readBytes(in, buffer);
+            }
+
+            if (inJarEntry.getName().endsWith(".jar") || inJarEntry.getName().endsWith(".war")) {
+                File baseDir = new File(inJarFile.getParentFile().getAbsolutePath());
+                String jarName = inJarEntry.getName();
+                File libFile = new File(baseDir, jarName);
+                libFile.getParentFile().mkdirs();
+                if (!libFile.exists()) {
+                    try (FileOutputStream libFileOS = new FileOutputStream(libFile)) {
+                        libFileOS.write(buffer);
+                    } catch (Throwable throwable) {
+                        throw new RuntimeException(throwable);
+                    }
                 }
-                if (inJarEntry.getSize() < 0) {
-                    throw new UnsupportedOperationException("File size " + inJarEntry.getName() + " unknown! File size must be positive number");
-                }
-                if (inJarEntry.getSize() > Integer.MAX_VALUE) {
-                    throw new UnsupportedOperationException("File " + inJarEntry.getName() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
-                }
-                // reading original jar file entry
-                buffer = new byte[(int) inJarEntry.getSize()];
-                try (InputStream in = jar.getInputStream(inJarEntry)) {
-                    readBytes(in, buffer);
-                }
+                transform(libFile);
+            } else {
                 Resource r = new Resource(inJarEntry.getName(), buffer);
                 // transform resource
                 String oldResourceName = r.getName();
@@ -87,7 +104,7 @@ final class ArchiveTransformerImpl {
                 if (oldResourceName.endsWith(CLASS_SUFFIX)) {
                     collect(r.getData(), newResourceName);
                 }
-
+            }
         }
     }
 
