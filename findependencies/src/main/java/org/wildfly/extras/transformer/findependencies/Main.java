@@ -18,6 +18,7 @@ package org.wildfly.extras.transformer.findependencies;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 /**
  * Main
@@ -26,11 +27,30 @@ import java.io.IOException;
  */
 public final class Main {
 
-    public static void main(final String... args) throws IOException {
 
-        final File inJarFile = new File(args[1]);
-        ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
-        jTrans.transform(inJarFile);
+    public static void main(final String... args) throws IOException {
+        System.out.println("find dependencies:" + args);
+        Filter filter = null;
+        for (int looper = 0 ; looper < args.length; looper++) {
+            String arg = args[looper];
+            if("-include".equals(arg) || "-i".equals(arg)) {
+                System.out.println("args:" + arg + ":" + args[looper+1]);
+                if (filter == null) {
+                    filter = new Filter();
+                }
+                filter.include(args[++looper]);
+            } else if("-file".equals(arg) || "-f".equals(arg)) {
+                System.out.println("args:" + arg + ":" + args[looper+1]);
+                final File inJarFile = new File(args[++looper]);
+                ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(filter!=null?filter:Filter.defaultFilter());
+                jTrans.transform(inJarFile);
+                Set<String> classnames =  ClassReference.getClassNames();
+                System.out.println("matches for input " + inJarFile.getName() + " = " + classnames + ": filter= " + filter);
+                // clear for the next set of options
+                filter = null;
+            }
+        }
+
     }
 
 }

@@ -112,7 +112,7 @@ final class ArchiveTransformerImpl {
         final ClassFileRefs cfRefs = ClassFileRefs.of(clazz);
         final ConstantPoolRefs cpRefs = cfRefs.getConstantPool();
         final String transformedClassName = cfRefs.getThisClassAsString();
-        System.out.println("class name = " + transformedClassName);
+        // System.out.println("class name = " + transformedClassName);
         int[] constantPoolIndexStartAtOne = cpRefs.getItemRefs();
         for (int index = 1 ; index < constantPoolIndexStartAtOne.length; index++) {
             String info="";
@@ -136,7 +136,7 @@ final class ArchiveTransformerImpl {
                 String methodName = cpRefs.getUtf8AsString(methodNameIndex);
                 methodDescriptorIndex = cpRefs.getNameAndType_DescriptorIndex(methodNameAndTypeIndex);
                 String methodDescriptor = cpRefs.getUtf8AsString(methodDescriptorIndex);
-                System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
+                // System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
                 classCollector.addMethod(className, methodName, methodDescriptor);
             }
 
@@ -144,7 +144,7 @@ final class ArchiveTransformerImpl {
                 info += "classInfo: ";
                 classNameIndex = cpRefs.getClass_NameIndex(index);
                 String className = cpRefs.getUtf8AsString(classNameIndex);
-                System.out.printf("%s: %s\n", info, className);
+                // System.out.printf("%s: %s\n", info, className);
             }
             if (cpRefs.isInterfaceMethodRef(index)) {
                 // TODO: CONSTANT_InterfaceMethodref_info

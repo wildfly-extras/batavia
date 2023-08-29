@@ -29,7 +29,7 @@ public class Filter {
 
     private final HashSet<String> match = new HashSet();
 
-    private Filter(String... checkValues) {
+    public Filter(String... checkValues) {
         match.addAll(Arrays.asList(checkValues));
     }
 
@@ -46,6 +46,11 @@ public class Filter {
 
     public static Filter defaultFilter() {
         return filter("jakarta");
+    }
+
+    public Filter include(String package_name) {
+        match.add(package_name);
+        return this;
     }
 
     /**
@@ -74,5 +79,12 @@ public class Filter {
         return false;
     }
 
+    public String toString() {
+        String result="Filter: ";
+        for (String check: match) {
+            result = result + match + ",";
+        }
+        return result;
+    }
 
 }
