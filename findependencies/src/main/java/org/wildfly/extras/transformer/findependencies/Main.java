@@ -21,7 +21,14 @@ import java.io.IOException;
 import java.util.Set;
 
 /**
- * Main
+ * Main entry point for finding application dependencies.
+ *
+ * Example usage will run the unit tests first which download Jakarta EE TCK files like jpa_jpa22_repeatable_joincolumns_vehicles.ear.
+ * The find command will invoke the org.wildfly.extras.transformer.findependencies.Main driver via Maven for each found EAR file.
+ *    cd batavia
+ *    mvn clean install
+ *    cd findependencies
+ *    find -name *.ear -exec mvn exec:java -Dexec.args="-include jakarta -file {}" \; > /tmp/out
  *
  * @author Scott Marlow
  */

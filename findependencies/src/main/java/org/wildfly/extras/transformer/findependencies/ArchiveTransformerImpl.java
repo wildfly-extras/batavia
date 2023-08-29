@@ -144,6 +144,7 @@ final class ArchiveTransformerImpl {
                 info += "classInfo: ";
                 classNameIndex = cpRefs.getClass_NameIndex(index);
                 String className = cpRefs.getUtf8AsString(classNameIndex);
+                // TODO: should we log the className variable value?
                 // System.out.printf("%s: %s\n", info, className);
             }
             if (cpRefs.isInterfaceMethodRef(index)) {
