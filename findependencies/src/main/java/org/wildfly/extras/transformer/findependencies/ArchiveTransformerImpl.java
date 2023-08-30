@@ -136,7 +136,7 @@ final class ArchiveTransformerImpl {
                 String methodName = cpRefs.getUtf8AsString(methodNameIndex);
                 methodDescriptorIndex = cpRefs.getNameAndType_DescriptorIndex(methodNameAndTypeIndex);
                 String methodDescriptor = cpRefs.getUtf8AsString(methodDescriptorIndex);
-                // System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
+                System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
                 classCollector.addMethod(className, methodName, methodDescriptor);
             }
 
@@ -145,10 +145,19 @@ final class ArchiveTransformerImpl {
                 classNameIndex = cpRefs.getClass_NameIndex(index);
                 String className = cpRefs.getUtf8AsString(classNameIndex);
                 // TODO: should we log the className variable value?
-                // System.out.printf("%s: %s\n", info, className);
+                System.out.printf("%s: %s\n", info, className);
             }
             if (cpRefs.isInterfaceMethodRef(index)) {
-                // TODO: CONSTANT_InterfaceMethodref_info
+                // TODO: InterfaceMethodref
+                // A symbolic reference to a method of an interface is derived from a
+                //CONSTANT_InterfaceMethodref_info structure (§4.4.2). Such a reference
+                //gives the name and descriptor of the interface method, as well as a symbolic
+                //reference to the interface in which the method is to be found.
+                // CONSTANT_Methodref_info {
+                //u1 tag;
+                //u2 class_index;
+                //u2 name_and_type_index;
+                //}
             }
             if (cpRefs.isNameAndType(index)) {
                 // TODO: CONSTANT_NameAndType_info

@@ -29,6 +29,8 @@ import java.util.Set;
 public class ClassReference {
     private static final HashMap<String, ClassReference> classes = new HashMap();
 
+    private final String className;
+
     /**
      *  Contains all Methods referenced by Class.
      *  methods map lookup is via method name.  The contained HashMap is referenced by descriptor.
@@ -42,7 +44,7 @@ public class ClassReference {
     private final HashMap<String,HashMap<String,FieldReference>> fields = new HashMap<>();
 
     private ClassReference(String className) {
-
+        this.className=className;
     }
 
     /**
@@ -60,6 +62,22 @@ public class ClassReference {
 
     public static Set<String> getClassNames() {
         return Collections.unmodifiableSet(classes.keySet()) ;
+    }
+
+    /**
+     *
+     * @return class name referenced
+     */
+    public String toString() {
+        return className;
+    }
+
+    /**
+     * @return list of method names referenced
+     */
+    public static Set<String> getMethodsReferenced(String className) {
+        ClassReference classReference = classes.get(className);
+        return classReference.methods.keySet();
     }
 
     /**

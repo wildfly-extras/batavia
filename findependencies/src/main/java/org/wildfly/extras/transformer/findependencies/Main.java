@@ -52,7 +52,9 @@ public final class Main {
                 ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(filter!=null?filter:Filter.defaultFilter());
                 jTrans.transform(inJarFile);
                 Set<String> classnames =  ClassReference.getClassNames();
-                System.out.println("matches for input " + inJarFile.getName() + " = " + classnames + ": filter= " + filter);
+                for( String classname:classnames) {
+                    System.out.printf("Class %s methods : %s are used by %s\n", classname, ClassReference.getMethodsReferenced(classname),inJarFile.getName());
+                }
                 // clear for the next set of options
                 filter = null;
             }
