@@ -121,6 +121,11 @@ final class ArchiveTransformerImpl {
             int methodNameAndTypeIndex;
             int methodNameIndex;
             int methodDescriptorIndex;
+            int nameAndTypeIndex;
+            int nameAndTypeNameIndex;
+            int nameAndTypeDescriptorIndex;
+            String methodName;
+            String methodDescriptor;
 
             if (cpRefs.isMethodRef(index)) {
                 info += "method: ";
@@ -133,9 +138,9 @@ final class ArchiveTransformerImpl {
 
                 methodNameAndTypeIndex = cpRefs.getMethodRef_NameAndTypeIndex(index);
                 methodNameIndex = cpRefs.getNameAndType_NameIndex(methodNameAndTypeIndex);
-                String methodName = cpRefs.getUtf8AsString(methodNameIndex);
+                methodName = cpRefs.getUtf8AsString(methodNameIndex);
                 methodDescriptorIndex = cpRefs.getNameAndType_DescriptorIndex(methodNameAndTypeIndex);
-                String methodDescriptor = cpRefs.getUtf8AsString(methodDescriptorIndex);
+                methodDescriptor = cpRefs.getUtf8AsString(methodDescriptorIndex);
                 System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
                 classCollector.addMethod(className, methodName, methodDescriptor);
             }
@@ -148,7 +153,21 @@ final class ArchiveTransformerImpl {
                 System.out.printf("%s: %s\n", info, className);
             }
             if (cpRefs.isInterfaceMethodRef(index)) {
-                // TODO: InterfaceMethodref
+                info += "InterfaceMethodref: ";
+                classIndex = cpRefs.getInterfaceMethodRef_ClassIndex(index);
+                classNameIndex = cpRefs.getClass_NameIndex(classIndex);
+                String className = cpRefs.getUtf8AsString(classNameIndex);
+
+                nameAndTypeIndex = cpRefs.getInterfaceMethodRef_NameAndTypeIndex(index);
+                nameAndTypeNameIndex = cpRefs.getNameAndType_NameIndex(nameAndTypeIndex);
+                methodName = cpRefs.getUtf8AsString(nameAndTypeNameIndex);
+
+                nameAndTypeDescriptorIndex = cpRefs.getNameAndType_DescriptorIndex(nameAndTypeIndex);
+                methodDescriptor = cpRefs.getUtf8AsString(nameAndTypeDescriptorIndex);
+
+                System.out.printf("%s: %s => %s %s\n", info, className, methodName, methodDescriptor);
+                classCollector.addMethod(className, methodName, methodDescriptor);
+
                 // A symbolic reference to a method of an interface is derived from a
                 //CONSTANT_InterfaceMethodref_info structure (§4.4.2). Such a reference
                 //gives the name and descriptor of the interface method, as well as a symbolic
