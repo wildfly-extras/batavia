@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import org.wildfly.extras.transformer.findependencies.classfileapi.ClassfileAPI;
+
 /**
  * Main entry point for finding application dependencies.
  *
@@ -34,9 +36,28 @@ import java.util.Set;
  */
 public final class Main {
 
+    // Class-File API (Preview) support check https://openjdk.org/jeps/8280389
+    // https://bugs.openjdk.org/browse/JDK-8280389 by checking for java.lang.ClassFile
+    static final boolean classfileAPI;
+
+    static {
+        try {
+            classfileAPI = Class.forName("java.lang.classfile.ClassFile") != null;
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public static void main(final String... args) throws IOException {
         System.out.println("find dependencies:" + args);
+
+        if (classfileAPI) {
+            // delegate to ClassfileAPI support for Java 21+
+            ClassfileAPI.main(args);
+            return;
+        }
+
         Filter filter = null;
         for (int looper = 0 ; looper < args.length; looper++) {
             String arg = args[looper];
@@ -57,6 +78,7 @@ public final class Main {
                 }
                 // clear for the next set of options
                 filter = null;
+                ClassReference.clear();
             }
         }
 

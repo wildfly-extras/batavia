@@ -96,7 +96,7 @@ final class ArchiveTransformerImpl {
                     }
                 }
                 transform(libFile);
-            } else {
+                } else {
                 Resource r = new Resource(inJarEntry.getName(), buffer);
                 // transform resource
                 String oldResourceName = r.getName();
