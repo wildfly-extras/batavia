@@ -42,15 +42,25 @@ public final class Main {
 
     static {
         try {
-            classfileAPI = Class.forName("java.lang.classfile.ClassFile") != null;
-        } catch (ClassNotFoundException e) {
+            System.out.println("Try loading the jdk.internal.classfile.Classfile class");
+            classfileAPI = Class.forName("jdk.internal.classfile.Classfile") != null;
+            if (classfileAPI == false) {
+                System.out.println("Class.forName(\"jdk.internal.classfile.Classfile\") returned: " + Class.forName("jdk.internal.classfile.Classfile"));
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }
 
 
     public static void main(final String... args) throws IOException {
-        System.out.println("find dependencies:" + args);
+        if (classfileAPI) {
+            System.out.println("find dependencies using https://openjdk.org/jeps/457:" + args);
+        } else {
+            System.out.println("find dependencies:" + args);
+        }
+
 
         if (classfileAPI) {
             // delegate to ClassfileAPI support for Java 21+

@@ -126,7 +126,6 @@
         <module>api</module>
         <module>impl</module>
         <module>tools</module>
-        <module>findependencies</module>
     </modules>
 
 </project>
