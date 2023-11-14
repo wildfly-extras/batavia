@@ -57,6 +57,7 @@ public class ClassfileAPI {
                 Path path = inJarFile.toPath();
                 ClassModel cm = null;
                 try {
+                    System.out.println("call Classfile.parse with " + path);
                     cm = cf.parse(path);
                 } catch (Throwable throwable) {
                     throwable.printStackTrace();

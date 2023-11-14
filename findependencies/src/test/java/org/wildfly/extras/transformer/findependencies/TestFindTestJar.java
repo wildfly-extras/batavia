@@ -56,7 +56,7 @@ public class TestFindTestJar {
     public void testProcessJar() throws Throwable {
         File ejbjar = fromTargetFile("dist/com/sun/ts/tests/jpa/jpa22/repeatable/convert/jpa_jpa22_repeatable_converts_stateless3_vehicle_ejb.jar");
         assertNotNull(ejbjar);
-        Main.main(new String[]{"-file", ejbjar.getName()});
+        Main.main(new String[]{"-file", ejbjar.getPath()});
         // ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
         // jTrans.transform(ejbjar);
         Set<String> classnames =  ClassReference.getClassNames();
