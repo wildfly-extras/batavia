@@ -39,6 +39,7 @@ public class ClassfileAPI {
 
     public static void main(final String... args) throws IOException {
         Filter filter = null;
+        ClassFileReader classFileReader = new ClassFileReader();
         System.out.println("xxx using ClassfileAPI + https://openjdk.org/jeps/457");
         for (int looper = 0; looper < args.length; looper++) {
             String arg = args[looper];
@@ -49,30 +50,12 @@ public class ClassfileAPI {
                 }
                 filter.include(args[++looper]);
             } else if ("-file".equals(arg) || "-f".equals(arg)) {
+                ClassReference.clear();
                 System.out.println("args:" + arg + ":" + args[looper + 1]);
                 final File inJarFile = new File(args[++looper]);
                 System.out.println("input file = " + inJarFile + " file exist check = " + inJarFile.exists());
-                Classfile cf = Classfile.of();
-                System.out.println("Classfile = " + cf);
-                Path path = inJarFile.toPath();
-                ClassModel cm = null;
-                try {
-                    System.out.println("call Classfile.parse with " + path);
-                    cm = cf.parse(path);
-                } catch (Throwable throwable) {
-                    throwable.printStackTrace();
-                    throw throwable;
-                }
-                System.out.println("ClassModel = " + cm);
-                for (ClassElement ce : cm) {
-                    System.out.println("ClassElement = " + cm);
-                    switch (ce) {
-                        case MethodModel mm -> System.out.printf("Method %s%n", mm.methodName().stringValue());
-                        case FieldModel fm -> System.out.printf("Field %s%n", fm.fieldName().stringValue());
-                        default -> {
-                        }
-                    }
-                }
+                classFileReader.scan(inJarFile);
+
                 Set<String> classnames = ClassReference.getClassNames();
                 for (String classname : classnames) {
                     System.out.printf("Class %s methods : %s are used by %s\n", classname, ClassReference.getMethodsReferenced(classname), inJarFile.getName());
@@ -80,7 +63,6 @@ public class ClassfileAPI {
                 System.out.printf("finished " + inJarFile + " testing...");
                 // clear for the next set of options
                 filter = null;
-                ClassReference.clear();
             }
         }
     }
@@ -92,7 +74,64 @@ public class ClassfileAPI {
     private static void processDeployment(File inJarFile, Filter filter) throws IOException {
         JarFile jar = new JarFile(inJarFile);
 
+    }
 
+    static class ClassFileReader extends Reader {
+
+        @Override
+        public void collect(byte[] clazz, String newResourceName) {
+            Classfile cf = Classfile.of();
+
+            ClassModel cm = null;
+            try {
+                cm = cf.parse(clazz);
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+                throw throwable;
+            }
+            String className = cm.thisClass().name().stringValue();
+            className = className.replace('/','.'); // correct java package name
+            System.out.println("Classname = " + className);
+            ClassReference.findClassName(className);
+            for (ClassElement ce : cm) {
+//                className = ce.thisClass().name().stringValue();
+//                className = className.replace('/','.'); // correct java package name
+//                ClassReference.findClassName(className);
+                switch (ce) {
+                    case MethodModel mm -> {
+                        String methodName = mm.methodName().stringValue();
+                        String methodDescriptor = mm.methodType().stringValue();
+                        if (mm.parent().isPresent()) {
+                            ClassModel methodIsInClass = mm.parent().get();
+                            String referencedClassName = methodIsInClass.thisClass().name().stringValue().replace('/','.');
+                            ClassReference classReference = ClassReference.findClassName(referencedClassName);
+                            classReference.addMethod(methodName, methodDescriptor);
+                            // TODO: extract classname out of descriptor
+                            System.out.printf("\nreferenced class %s method %s descriptor %s", referencedClassName, methodName, methodDescriptor);
+                        } else {
+                            System.out.printf("\nneed to understand why methodName %s descriptor: has no parent", methodName, methodDescriptor);
+                        }
+
+                    }
+                    case FieldModel fm -> {
+                        String fieldName = fm.fieldName().stringValue();
+                        String fieldDescriptor = fm.fieldType().stringValue();
+                        if (fm.parent().isPresent()) {
+                            ClassModel fieldIsInClass = fm.parent().get();
+                            String referencedClassName = fieldIsInClass.thisClass().name().stringValue().replace('/','.');
+                            ClassReference classReference = ClassReference.findClassName(referencedClassName);
+                            classReference.addField(fieldName, fieldDescriptor);
+                            // TODO: extract classname out of descriptor
+                            System.out.printf("\nreferenced class %s field %s descriptor %s", referencedClassName, fieldName, fieldDescriptor);
+                        }
+
+                    }
+                    default -> {
+
+                    }
+                }
+            }
+        }
     }
 }
 

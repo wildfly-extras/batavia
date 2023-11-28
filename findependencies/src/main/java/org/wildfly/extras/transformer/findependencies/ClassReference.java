@@ -91,9 +91,10 @@ public class ClassReference {
         HashMap<String,MethodReference> map = methods.get(method);
         if(map == null) {
             map = new HashMap<String,MethodReference>();
+            methods.put(method, map);
             methodReference = new MethodReference(method, descriptor);
             map.put(method, methodReference);
-            methods.put(method, map);
+
         } else if((methodReference = map.get(descriptor)) == null) {
             methodReference = new MethodReference(method, descriptor);
             map.put(method, methodReference);
