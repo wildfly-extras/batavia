@@ -51,7 +51,7 @@ public abstract class Reader {
      * @param inJarFile archive file to be consumed (can be exploded)
      * @throws IOException if some I/O error occurs
      */
-    public void transform(final File inJarFile) throws IOException {
+    public void scan(final File inJarFile) throws IOException {
         JarEntry inJarEntry;
         byte[] buffer;
 
@@ -89,10 +89,12 @@ public abstract class Reader {
                         throw new RuntimeException(throwable);
                     }
                 }
-                transform(libFile); // recurse to handle written to disk *.jar + *.war files.
+                scan(libFile); // recurse to handle written to disk *.jar + *.war files.
             } else {
                 if (inJarEntry.getName().endsWith(CLASS_SUFFIX)) {
                     collect(buffer, inJarEntry.getName());
+                } else {
+                    System.out.println("Reader#scan is ignoring " + inJarEntry.getName());
                 }
             }
         }
