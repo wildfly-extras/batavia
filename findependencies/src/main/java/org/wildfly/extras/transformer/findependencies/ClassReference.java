@@ -52,6 +52,7 @@ public class ClassReference {
      */
 
     public static ClassReference findClassName(String className) {
+        className = ClassFileUtils.internalToBinary(className);
         ClassReference classReference = classes.get(className);
         if (classReference == null) {
             classReference = new ClassReference(className);
@@ -76,6 +77,7 @@ public class ClassReference {
      * @return list of method names referenced
      */
     public static Set<String> getMethodsReferenced(String className) {
+        className = ClassFileUtils.internalToBinary(className);
         ClassReference classReference = classes.get(className);
         return classReference.methods.keySet();
     }

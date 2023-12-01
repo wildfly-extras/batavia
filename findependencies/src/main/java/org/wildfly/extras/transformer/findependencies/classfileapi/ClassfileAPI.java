@@ -76,6 +76,12 @@ public class ClassfileAPI {
 
     }
 
+    private static String dropFirstAndLastChar(String value) {
+        if (value.length() <= 1)
+            return value;
+        return value.substring(1, value.length() - 1);
+    }
+
     static class ClassFileReader extends Reader {
 
         @Override
@@ -93,6 +99,7 @@ public class ClassfileAPI {
             className = className.replace('/','.'); // correct java package name
             System.out.println("Classname = " + className);
             ClassReference.findClassName(className);
+
             for (ClassElement ce : cm) {
 //                className = ce.thisClass().name().stringValue();
 //                className = className.replace('/','.'); // correct java package name
@@ -101,11 +108,16 @@ public class ClassfileAPI {
                     case MethodModel mm -> {
                         String methodName = mm.methodName().stringValue();
                         String methodDescriptor = mm.methodType().stringValue();
+                        methodDescriptor = dropFirstAndLastChar(methodDescriptor);
+                        ClassReference classReference = ClassReference.findClassName(methodDescriptor);
+                        classReference.addMethod(methodName, methodDescriptor);
+
+                        // MethodTypeDesc methodTypeDesc = mm.methodTypeSymbol();
+                        // ClassDesc classDesc = methodTypeDesc.returnType();
+
                         if (mm.parent().isPresent()) {
                             ClassModel methodIsInClass = mm.parent().get();
                             String referencedClassName = methodIsInClass.thisClass().name().stringValue().replace('/','.');
-                            ClassReference classReference = ClassReference.findClassName(referencedClassName);
-                            classReference.addMethod(methodName, methodDescriptor);
                             // TODO: extract classname out of descriptor
                             System.out.printf("\nreferenced class %s method %s descriptor %s", referencedClassName, methodName, methodDescriptor);
                         } else {
@@ -116,13 +128,17 @@ public class ClassfileAPI {
                     case FieldModel fm -> {
                         String fieldName = fm.fieldName().stringValue();
                         String fieldDescriptor = fm.fieldType().stringValue();
+                        fieldDescriptor = dropFirstAndLastChar(fieldDescriptor);
+                        ClassReference classReference = ClassReference.findClassName(fieldDescriptor);
+                        classReference.addField(fieldName, fieldDescriptor);
+
                         if (fm.parent().isPresent()) {
                             ClassModel fieldIsInClass = fm.parent().get();
                             String referencedClassName = fieldIsInClass.thisClass().name().stringValue().replace('/','.');
-                            ClassReference classReference = ClassReference.findClassName(referencedClassName);
-                            classReference.addField(fieldName, fieldDescriptor);
                             // TODO: extract classname out of descriptor
                             System.out.printf("\nreferenced class %s field %s descriptor %s", referencedClassName, fieldName, fieldDescriptor);
+                        } else {
+                            System.out.println("\nfigure out this else case cause.");
                         }
 
                     }

@@ -143,4 +143,8 @@ final class ClassFileUtils {
         return retVal;
     }
 
+    static String internalToBinary(String name) {
+        return name.replace('/', '.');
+    }
+
 }

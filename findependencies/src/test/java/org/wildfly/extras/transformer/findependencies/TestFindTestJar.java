@@ -60,7 +60,7 @@ public class TestFindTestJar {
         // ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
         // jTrans.transform(ejbjar);
         Set<String> classnames =  ClassReference.getClassNames();
-        assertTrue(classnames.contains("jakarta.persistence.Persistence"), "expect to find jakarta.persistence.Persistence in " + classnames);
+        assertTrue(classnames.contains("jakarta.persistence.EntityTransaction"), "expect to find jakarta.persistence.EntityTransaction in " + classnames);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class TestFindTestJar {
         ArchiveTransformerImpl jTrans = new ArchiveTransformerImpl(Filter.defaultFilter());
         jTrans.transform(ear);
         Set<String> classnames =  ClassReference.getClassNames();
-        assertTrue(classnames.contains("jakarta/persistence/Persistence"), "expect to find jakarta/persistence/Persistence in " + classnames);
+        assertTrue(classnames.contains("jakarta.persistence.Persistence"), "expect to find jakarta.persistence.Persistence in " + classnames);
     }
 
 
