@@ -16,19 +16,19 @@
 
 package org.wildfly.extras.transformer.findependencies.classfileapi;
 
-import jdk.internal.classfile.*;
+import static jdk.internal.classfile.Classfile.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.lang.constant.ClassDesc;
+import java.lang.constant.MethodTypeDesc;
 import java.util.Set;
 import java.util.jar.JarFile;
 
-import static jdk.internal.classfile.Classfile.*;
-
-import org.wildfly.extras.transformer.findependencies.archivefile.Reader;
+import jdk.internal.classfile.*;
 import org.wildfly.extras.transformer.findependencies.ClassReference;
 import org.wildfly.extras.transformer.findependencies.Filter;
+import org.wildfly.extras.transformer.findependencies.archivefile.Reader;
 
 /**
  * ClassfileAPI
@@ -82,6 +82,10 @@ public class ClassfileAPI {
         return value.substring(1, value.length() - 1);
     }
 
+    private static String internalToBinary(String name) {
+        return name.replace('/', '.');
+    }
+
     static class ClassFileReader extends Reader {
 
         @Override
@@ -96,7 +100,7 @@ public class ClassfileAPI {
                 throw throwable;
             }
             String className = cm.thisClass().name().stringValue();
-            className = className.replace('/','.'); // correct java package name
+            className = className.replace('/', '.'); // correct java package name
             System.out.println("Classname = " + className);
             ClassReference.findClassName(className);
 
@@ -106,24 +110,31 @@ public class ClassfileAPI {
 //                ClassReference.findClassName(className);
                 switch (ce) {
                     case MethodModel mm -> {
-                        String methodName = mm.methodName().stringValue();
-                        String methodDescriptor = mm.methodType().stringValue();
-                        methodDescriptor = dropFirstAndLastChar(methodDescriptor);
-                        ClassReference classReference = ClassReference.findClassName(methodDescriptor);
-                        classReference.addMethod(methodName, methodDescriptor);
+                        MethodTypeDesc methodTypeDesc = mm.methodTypeSymbol();
 
-                        // MethodTypeDesc methodTypeDesc = mm.methodTypeSymbol();
-                        // ClassDesc classDesc = methodTypeDesc.returnType();
-
-                        if (mm.parent().isPresent()) {
+                        if (mm.parent().isPresent()) { // if we know the class model that called method is part of
                             ClassModel methodIsInClass = mm.parent().get();
-                            String referencedClassName = methodIsInClass.thisClass().name().stringValue().replace('/','.');
-                            // TODO: extract classname out of descriptor
-                            System.out.printf("\nreferenced class %s method %s descriptor %s", referencedClassName, methodName, methodDescriptor);
-                        } else {
-                            System.out.printf("\nneed to understand why methodName %s descriptor: has no parent", methodName, methodDescriptor);
+                            String methodName = mm.methodName().stringValue();
+                            String methodDescriptor = mm.methodType().stringValue();
+                            methodDescriptor = dropFirstAndLastChar(methodDescriptor);
+                            String parentClassName = methodIsInClass.thisClass().name().stringValue();
+                            parentClassName = internalToBinary(parentClassName);
+                            ClassReference targetMethodIsInClass = ClassReference.findClassName(dropFirstAndLastChar(parentClassName));
+                            targetMethodIsInClass.addMethod(methodName, methodDescriptor);
                         }
 
+                        ClassDesc returnTypeClassDesc = methodTypeDesc.returnType();
+                        String returnTypeDescriptor = returnTypeClassDesc.descriptorString();
+                        returnTypeDescriptor = internalToBinary(returnTypeDescriptor);
+                        // record first reference to return type class
+                        ClassReference.findClassName(dropFirstAndLastChar(returnTypeDescriptor));
+
+                        for (int parameterCount = methodTypeDesc.parameterCount(); parameterCount > 0; parameterCount--) {
+                            ClassDesc parameterClassDesc = methodTypeDesc.parameterType(parameterCount - 1);
+                            String parameterDescriptor = internalToBinary(parameterClassDesc.descriptorString());
+                            // record first reference to each parameter class type
+                            ClassReference.findClassName(dropFirstAndLastChar(parameterDescriptor));
+                        }
                     }
                     case FieldModel fm -> {
                         String fieldName = fm.fieldName().stringValue();
@@ -131,16 +142,11 @@ public class ClassfileAPI {
                         fieldDescriptor = dropFirstAndLastChar(fieldDescriptor);
                         ClassReference classReference = ClassReference.findClassName(fieldDescriptor);
                         classReference.addField(fieldName, fieldDescriptor);
-
-                        if (fm.parent().isPresent()) {
-                            ClassModel fieldIsInClass = fm.parent().get();
-                            String referencedClassName = fieldIsInClass.thisClass().name().stringValue().replace('/','.');
-                            // TODO: extract classname out of descriptor
-                            System.out.printf("\nreferenced class %s field %s descriptor %s", referencedClassName, fieldName, fieldDescriptor);
-                        } else {
-                            System.out.println("\nfigure out this else case cause.");
-                        }
-
+                        System.out.println("fieldName " + fieldName + " of type " + fieldDescriptor);
+                        // if (fm.parent().isPresent()) { // not sure this is needed so ignoring for now
+                        // ClassModel fieldIsInClass = fm.parent().get();
+                        // String referencedClassName = fieldIsInClass.thisClass().name().stringValue();
+                        // }
                     }
                     default -> {
 

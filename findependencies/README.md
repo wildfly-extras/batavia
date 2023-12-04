@@ -27,3 +27,7 @@ That could be possible but needs further exploring.
 Yes, it can help developers to better understand what the application deployment archive (e.g. jar/war/ear) file(s) depends on exactly.
 
 The inverse is also true in that the output can help show which [jakarta.ee/specifications](https://jakarta.ee/specifications) are not used by an application.  This information could be useful to feed into future Jakarta EE release development discussions. 
+
+### How to build and run tests
+
+First change into the root folder and build via `mvn clean install` and then change into the findependencies folder and build via `mvn clean install`
