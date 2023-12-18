@@ -1,0 +1,19 @@
+name: Batavia CI
+on: [push]
+jobs:
+    Build:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Check out
+                uses: actions/checkout@v4
+            -   name: Java version
+                uses: oracle-actions/setup-java@v1.3.2
+                with:
+                    website: jdk.java.net
+                    release: 22
+                    version: latest
+            -   name: Build main
+                run: mvn clean install
+            -   name: Build findependencies
+                run: mvn clean install -X -f findependencies/pom.xml
+
