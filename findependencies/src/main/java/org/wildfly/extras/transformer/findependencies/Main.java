@@ -42,10 +42,10 @@ public final class Main {
 
     static {
         try {
-            System.out.println("Try loading the jdk.internal.classfile.Classfile class");
-            classfileAPI = Class.forName("jdk.internal.classfile.Classfile") != null;
+            System.out.println("Try loading the java.lang.classfile.ClassFile class");
+            classfileAPI = Class.forName("java.lang.classfile.ClassFile") != null;
             if (classfileAPI == false) {
-                System.out.println("Class.forName(\"jdk.internal.classfile.Classfile\") returned: " + Class.forName("jdk.internal.classfile.Classfile"));
+                System.out.println("Class.forName(\"java.lang.classfile.ClassFile\") returned: " + Class.forName("java.lang.classfile.ClassFile"));
             }
         } catch (Throwable e) {
             e.printStackTrace();

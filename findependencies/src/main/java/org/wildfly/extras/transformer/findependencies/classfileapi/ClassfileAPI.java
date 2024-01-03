@@ -16,8 +16,6 @@
 
 package org.wildfly.extras.transformer.findependencies.classfileapi;
 
-import static jdk.internal.classfile.Classfile.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.constant.ClassDesc;
@@ -25,7 +23,7 @@ import java.lang.constant.MethodTypeDesc;
 import java.util.Set;
 import java.util.jar.JarFile;
 
-import jdk.internal.classfile.*;
+import java.lang.classfile.*;
 import org.wildfly.extras.transformer.findependencies.ClassReference;
 import org.wildfly.extras.transformer.findependencies.Filter;
 import org.wildfly.extras.transformer.findependencies.archivefile.Reader;
@@ -90,7 +88,7 @@ public class ClassfileAPI {
 
         @Override
         public void collect(byte[] clazz, String newResourceName) {
-            Classfile cf = Classfile.of();
+            ClassFile cf = ClassFile.of();
 
             ClassModel cm = null;
             try {
