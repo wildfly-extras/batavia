@@ -70,19 +70,6 @@
                 <source>22</source>
                 <target>22</target>
                 <enablePreview>true</enablePreview>
-                <!-- release>22</release -->
-                <compilerArgs>
-                    <arg>--add-exports</arg>
-                    <arg>java.base/jdk.internal.classfile=ALL-UNNAMED</arg>
-                    <arg>--add-exports</arg>
-                    <arg>java.base/jdk.internal.classfile.attribute=ALL-UNNAMED</arg>
-                    <arg>--add-exports</arg>
-                    <arg>java.base/jdk.internal.classfile.constantpool=ALL-UNNAMED</arg>
-                    <arg>--add-exports</arg>
-                    <arg>java.base/jdk.internal.classfile.instruction=ALL-UNNAMED</arg>
-                    <arg>--add-exports</arg>
-                    <arg>java.base/jdk.internal.classfile.components=ALL-UNNAMED</arg>
-                </compilerArgs>
             </configuration>
         </plugin>
 
@@ -92,8 +79,7 @@
             <version>3.1.2</version>
             <configuration>
                 <argLine>
---enable-preview --add-exports java.base/jdk.internal.classfile=ALL-UNNAMED --add-exports java.base/jdk.internal.classfile.attribute=ALL-UNNAMED
---add-exports java.base/jdk.internal.classfile.constantpool=ALL-UNNAMED --add-exports java.base/jdk.internal.classfile.instruction=ALL-UNNAMED --add-exports java.base/jdk.internal.classfile.components=ALL-UNNAMED
+--enable-preview 
                 </argLine>
             </configuration>
             <dependencies>
