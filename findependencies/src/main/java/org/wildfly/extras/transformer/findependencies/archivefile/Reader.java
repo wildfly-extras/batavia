@@ -17,6 +17,7 @@
 package org.wildfly.extras.transformer.findependencies.archivefile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,6 +56,20 @@ public abstract class Reader {
         JarEntry inJarEntry;
         byte[] buffer;
 
+        if (inJarFile.getName().endsWith(CLASS_SUFFIX)) {
+            if (inJarFile.length() < 0) {
+                throw new UnsupportedOperationException("File size " + inJarFile.getName() + " unknown! File size must be positive number");
+            }
+            if (inJarFile.length() > Integer.MAX_VALUE) {
+                throw new UnsupportedOperationException("File " + inJarFile.getName() + " too big! Maximum allowed file size is " + Integer.MAX_VALUE + " bytes");
+            }
+            buffer = new byte[(int) inJarFile.length()];
+            try (InputStream in = new FileInputStream(inJarFile)) {
+                readBytes(in, buffer);
+            }
+            collect(buffer, inJarFile.getName());
+            return;
+        }
 
         JarFile jar = new JarFile(inJarFile);
         for (final Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {

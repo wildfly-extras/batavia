@@ -33,6 +33,7 @@ import java.util.zip.ZipInputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.wildfly.extras.transformer.findependencies.classfileapi.ClassfileAPI;
 
 /**
  * TestFindTestJar
@@ -50,6 +51,14 @@ public class TestFindTestJar {
     public void testJarDownload() {
         File ejbjar = fromTargetFile("dist/com/sun/ts/tests/jpa/jpa22/repeatable/convert/jpa_jpa22_repeatable_converts_stateless3_vehicle_ejb.jar");
         assertNotNull(ejbjar);
+    }
+
+    @Test
+    public void testClassfileAPI() throws Throwable {
+
+        Main.main(new String[]{"-file",  "target/classes/org/wildfly/extras/transformer/findependencies/classfileapi/ClassfileAPI.class"});
+        Set<String> classnames =  ClassReference.getClassNames();
+        assertTrue(classnames.contains("java.lang.classfile.constantpool.ClassEntry"), "expect to find java.lang.classfile.constantpool.ClassEntry in " + classnames);
     }
 
     @Test
@@ -72,7 +81,6 @@ public class TestFindTestJar {
         Set<String> classnames =  ClassReference.getClassNames();
         assertTrue(classnames.contains("jakarta.persistence.Persistence"), "expect to find jakarta.persistence.Persistence in " + classnames);
     }
-
 
     private static final String legacyTCKZipDownload = "https://download.eclipse.org/jakartaee/platform/10/jakarta-jakartaeetck-10.0.2.zip";
     private static final String unzippedLegacyTCK = "jakartaeetck";
