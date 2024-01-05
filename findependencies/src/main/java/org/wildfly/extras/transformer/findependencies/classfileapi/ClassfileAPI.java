@@ -18,12 +18,19 @@ package org.wildfly.extras.transformer.findependencies.classfileapi;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.classfile.ClassElement;
+import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassModel;
+import java.lang.classfile.FieldModel;
+import java.lang.classfile.Interfaces;
+import java.lang.classfile.MethodModel;
+import java.lang.classfile.Superclass;
+import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.util.Set;
 import java.util.jar.JarFile;
 
-import java.lang.classfile.*;
 import org.wildfly.extras.transformer.findependencies.ClassReference;
 import org.wildfly.extras.transformer.findependencies.Filter;
 import org.wildfly.extras.transformer.findependencies.archivefile.Reader;
@@ -103,10 +110,19 @@ public class ClassfileAPI {
             ClassReference.findClassName(className);
 
             for (ClassElement ce : cm) {
-//                className = ce.thisClass().name().stringValue();
-//                className = className.replace('/','.'); // correct java package name
-//                ClassReference.findClassName(className);
                 switch (ce) {
+                    case Superclass superclass -> {
+                        // record the super class
+                        ClassReference.findClassName(superclass.superclassEntry().name().stringValue());
+                    }
+
+                    case Interfaces interfaces -> {
+                        for (ClassEntry classEntry : interfaces.interfaces()
+                        ) {
+                            // record the referenced interface class
+                            ClassReference.findClassName(classEntry.name().stringValue());
+                        }
+                    }
                     case MethodModel mm -> {
                         MethodTypeDesc methodTypeDesc = mm.methodTypeSymbol();
 
