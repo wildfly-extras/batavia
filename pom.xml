@@ -114,6 +114,11 @@
                 <artifactId>transformer-impl-nodeps</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.wildfly.extras.batavia</groupId>
+                <artifactId>findependencies</artifactId>
+                <version>${project.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
