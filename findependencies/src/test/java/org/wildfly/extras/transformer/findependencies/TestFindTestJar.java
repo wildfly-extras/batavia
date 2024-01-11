@@ -33,7 +33,6 @@ import java.util.zip.ZipInputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.wildfly.extras.transformer.findependencies.classfileapi.ClassfileAPI;
 
 /**
  * TestFindTestJar
@@ -56,7 +55,7 @@ public class TestFindTestJar {
     @Test
     public void testClassfileAPI() throws Throwable {
 
-        Main.main(new String[]{"-file",  "target/classes/org/wildfly/extras/transformer/findependencies/classfileapi/ClassfileAPI.class"});
+        Main.main(new String[]{"-file",  "target/classes/org/wildfly/extras/transformer/findependencies/classfileapi/ClassfileAPI$ClassFileReader.class"});
         Set<String> classnames =  ClassReference.getClassNames();
         assertTrue(classnames.contains("java.lang.classfile.constantpool.ClassEntry"), "expect to find java.lang.classfile.constantpool.ClassEntry in " + classnames);
     }

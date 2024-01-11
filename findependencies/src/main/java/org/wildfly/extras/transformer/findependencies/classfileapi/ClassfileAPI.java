@@ -23,11 +23,14 @@ import java.lang.classfile.ClassFile;
 import java.lang.classfile.ClassModel;
 import java.lang.classfile.FieldModel;
 import java.lang.classfile.Interfaces;
+import java.lang.classfile.MethodElement;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.Superclass;
 import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.PoolEntry;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.jar.JarFile;
 
@@ -104,7 +107,19 @@ public class ClassfileAPI {
                 throwable.printStackTrace();
                 throw throwable;
             }
-            String className = cm.thisClass().name().stringValue();
+            String className;
+            // add all of the constant pool class name references
+            for (Iterator<PoolEntry> it = cm.constantPool().iterator(); it.hasNext(); ) {
+                PoolEntry poolEntry = it.next();
+                if (poolEntry instanceof ClassEntry) {
+                    ClassEntry classEntry = (ClassEntry) poolEntry;
+                    className = classEntry.name().stringValue();
+                    className = className.replace('/', '.'); // correct java package name
+                    ClassReference.findClassName(className);
+                }
+            }
+
+            className = cm.thisClass().name().stringValue();
             className = className.replace('/', '.'); // correct java package name
             System.out.println("Classname = " + className);
             ClassReference.findClassName(className);
@@ -156,7 +171,6 @@ public class ClassfileAPI {
                         fieldDescriptor = dropFirstAndLastChar(fieldDescriptor);
                         ClassReference classReference = ClassReference.findClassName(fieldDescriptor);
                         classReference.addField(fieldName, fieldDescriptor);
-                        System.out.println("fieldName " + fieldName + " of type " + fieldDescriptor);
                         // if (fm.parent().isPresent()) { // not sure this is needed so ignoring for now
                         // ClassModel fieldIsInClass = fm.parent().get();
                         // String referencedClassName = fieldIsInClass.thisClass().name().stringValue();
